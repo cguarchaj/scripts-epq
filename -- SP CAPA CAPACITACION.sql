@@ -74,55 +74,26 @@ BEGIN
 	            where C.id = pId;
 	           
 	 elsif pOpcion = 5 then 
-	-- Contar los registros filtrados por descripción, si se proporciona
-	    SELECT COUNT(*) INTO vContador
-	    FROM RHEPQ.capaCapacitacion C
-	    INNER JOIN RHEPQ.CAPACURSO CUR ON CUR.ID = C.IDCURSO
-	    INNER JOIN RHEPQ.CAPATIPOCAPACITACION TC ON TC.ID = C.IDTIPOCAPACITACION
-	    WHERE 
-	    (
-	        pDescripcion IS NULL
-	        OR pDescripcion = ''
-	        OR LOWER(C.descripcion) LIKE '%' || LOWER(TRIM(pDescripcion)) || '%'
-	    );
-	
-		-- Asignar la cantidad total de páginas
-		pTotalPage := vContador;
-		--pTotalPage := CEIL(vContador / pPageSize);
-	    
-	    -- Abrir el cursor para obtener los resultados paginados y filtrados
-	    OPEN pCursor FOR
-	        SELECT id, idCurso, curso, idTipoCapacitacion, descripcion, tipoCapacitacion, fechaHoraInicial, fechaHoraFinal, url, ubicacion, estado
-	        FROM (
-	            SELECT a.*, ROWNUM rnum
-	            FROM (
-	                SELECT 
-	                    C.id, 
-	                    C.idCurso, 
-	                    CUR.NOMBRE AS curso,
-	                    C.idTipoCapacitacion,                 
-	                    C.descripcion, 
-	                    TC.NOMBRE AS tipoCapacitacion,
-	                    C.fechaHoraInicial, 
-	                    C.fechaHoraFinal, 
-	                    C.url, 
-	                    C.ubicacion, 
-	                    C.estado
-	                FROM RHEPQ.capaCapacitacion C
-	                INNER JOIN RHEPQ.CAPACURSO CUR ON CUR.ID = C.IDCURSO
-	                INNER JOIN RHEPQ.CAPATIPOCAPACITACION TC ON TC.ID = C.IDTIPOCAPACITACION
-	                WHERE
-	                (
-	                    pDescripcion IS NULL
-	                    OR pDescripcion = ''
-	                    OR LOWER(C.descripcion) LIKE '%' || LOWER(TRIM(pDescripcion)) || '%'
-	                )
-	                ORDER BY C.id
-	            ) a
-	            WHERE ROWNUM <= pPageNumber * pPageSize
-	        )
-	        WHERE rnum > (pPageNumber - 1) * pPageSize;
-		   
+		OPEN pCursor FOR
+			SELECT 
+			    C.id, 
+			    C.idCurso, 
+			    CUR.NOMBRE AS curso,
+			    C.idTipoCapacitacion,                 
+			    C.descripcion, 
+			    TC.NOMBRE AS tipoCapacitacion,
+			    C.fechaHoraInicial, 
+			    C.fechaHoraFinal, 
+			    C.url, 
+			    C.ubicacion, 
+			    C.estado
+			FROM RHEPQ.capaCapacitacion C
+			INNER JOIN RHEPQ.CAPACURSO CUR ON CUR.ID = C.IDCURSO
+			INNER JOIN RHEPQ.CAPATIPOCAPACITACION TC ON TC.ID = C.IDTIPOCAPACITACION
+			WHERE C.fechaHoraInicial <= pFechaHoraFinal
+			AND C.fechaHoraFinal >= pFechaHoraInicial
+			ORDER BY C.id;         
+               
     END IF;
    
     exception
@@ -824,8 +795,16 @@ BEGIN
 			        WHERE ROWNUM <= pPageNumber * pPageSize
 			    )
 			    WHERE rnum > (pPageNumber - 1) * pPageSize;
+			   
+   	elsif pOpcion = 6 then 
+        open pCursor for 
+        	select 
+            	D.id AS value, 
+            	D.nombre AS label
+    		from RHEPQ.capaDocumento D;
 
     END IF;
+   
     exception
         when others then 
             rollback to transact;
@@ -840,6 +819,7 @@ CREATE OR REPLACE procedure RHEPQ.spCapaFirma(
     pArchivo IN varchar2 default null,
     pExtension IN varchar2 default null,
     pEstado IN number default 1,
+    pDescripcion IN varchar2 default null,
     pUsuario IN number,
     pPageNumber IN NUMBER DEFAULT 1,
     pPageSize IN NUMBER  DEFAULT 10,
@@ -854,13 +834,13 @@ BEGIN
     SAVEPOINT transact;
 
     IF pOpcion = 1 then
-       INSERT INTO RHEPQ.capaFirma (id, archivo, extension, estado, creado, creadoPor, actualizado, actualizadoPor)
+       INSERT INTO RHEPQ.capaFirma (id, archivo, extension, descripcion, estado, creado, creadoPor, actualizado, actualizadoPor)
         VALUES
-        (RHEPQ.capaFirmaSeq.NEXTVAL, pArchivo, pExtension, pEstado, SYSDATE, pUsuario, NULL, NULL)
+        (RHEPQ.capaFirmaSeq.NEXTVAL, pArchivo, pExtension, pDescripcion, pEstado, SYSDATE, pUsuario, NULL, NULL)
         RETURNING id INTO pId;
        
     elsif pOpcion = 2 then
-        update RHEPQ.capaFirma set archivo = pArchivo, extension = pExtension, actualizado = SYSDATE, actualizadoPor = pUsuario where id = pId;
+        update RHEPQ.capaFirma set archivo = pArchivo, extension = pExtension, descripcion = pDescripcion, actualizado = SYSDATE, actualizadoPor = pUsuario where id = pId;
        
     elsif pOpcion = 3 then 
         update RHEPQ.capaFirma set estado = pEstado, actualizado = SYSDATE, actualizadoPor = pUsuario where id = pId;
@@ -873,6 +853,7 @@ BEGIN
             open pCursor for 
                 select 
 	                id, 
+	                descripcion,
 	                archivo, 
 	                extension, 
 	                estado
@@ -880,28 +861,50 @@ BEGIN
                where id = pId;
                
     elsif pOpcion = 5 then 
-            SELECT COUNT(*) INTO vContador 
-         	FROM RHEPQ.capaFirma;
-           
-    		-- Asignar la cantidad total de páginas
-			pTotalPage := vContador;
-			--pTotalPage := CEIL(vContador / pPageSize);
-
-			OPEN pCursor FOR
-			    SELECT * FROM (
-			        SELECT a.*, ROWNUM rnum
-			        FROM (
-			            SELECT 
-			                id, 
-			                archivo, 
-			                extension, 
-			                estado
-			            FROM RHEPQ.capaFirma			       
-			            ORDER BY id DESC
-			        ) a
-			        WHERE ROWNUM <= pPageNumber * pPageSize
-			    )
-			    WHERE rnum > (pPageNumber - 1) * pPageSize;
+	    SELECT COUNT(*) INTO vContador
+	    FROM RHEPQ.capaFirma
+	    WHERE 
+	    (
+	        pDescripcion IS NULL
+	        OR pDescripcion = ''
+	        OR LOWER(descripcion) LIKE '%' || LOWER(TRIM(pDescripcion)) || '%'
+	    );
+	    
+	    -- Asignar la cantidad total de páginas
+	    pTotalPage := vContador;
+	    --pTotalPage := CEIL(vContador / pPageSize);
+	    
+	    -- Abrir el cursor para obtener los resultados paginados y filtrados
+	    OPEN pCursor FOR
+	        SELECT id, archivo, extension, descripcion, estado
+	        FROM (
+	            SELECT a.*, ROWNUM rnum
+	            FROM (
+	                SELECT 
+	                    id, 
+	                    archivo, 
+	                    extension, 
+	                    descripcion,
+	                    estado
+	                FROM RHEPQ.capaFirma
+	                WHERE
+	                (
+	                    pDescripcion IS NULL
+	                    OR pDescripcion = ''
+	                    OR LOWER(descripcion) LIKE '%' || LOWER(TRIM(pDescripcion)) || '%'
+	                )
+	                ORDER BY id DESC
+	            ) a
+	            WHERE ROWNUM <= pPageNumber * pPageSize
+	        )
+	        WHERE rnum > (pPageNumber - 1) * pPageSize;
+			   
+       elsif pOpcion = 6 then 
+            open pCursor for 
+                select 
+	                id AS value, 
+	                descripcion AS label
+                from RHEPQ.capaFirma;
            
     END IF;
    
@@ -952,7 +955,16 @@ BEGIN
 
     IF pOpcion IN (1,2,3,4) then 
             open pCursor for 
-                select cfd.id, cd.nombre, cd.archivo, cd.extension, cf.archivo, cf.extension,  cfd.estado
+                select 
+                	cfd.id, 
+                	cd.nombre, 
+                	cd.archivo, 
+                	cd.extension, 
+                	cf.archivo, 
+                	cf.extension,  
+                	cfd.estado,
+                	cfd.idFirma,
+                	cf.descripcion AS descripcionFirma
                 from RHEPQ.capaFirmaDocumento cfd 
                 inner join RHEPQ.capaFirma cf on cf.id = cfd.idFirma
                 inner join RHEPQ.capaDocumento cd on cd.id = cfd.idDocumento
@@ -978,7 +990,9 @@ BEGIN
                         		cd.extension AS archivoExtension, 
                         		cf.archivo AS firmaArchivo, 
                         		cf.extension AS firmaExtension,  
-                        		cfd.estado AS firmDocEstado
+                        		cfd.estado AS estado,
+                        		cfd.idFirma,
+                        		cf.descripcion AS descripcionFirma
                         from RHEPQ.capaFirmaDocumento cfd
                         inner join RHEPQ.capaFirma cf on cf.id = cfd.idFirma
                         inner join RHEPQ.capaDocumento cd on cd.id = cfd.idDocumento
@@ -1091,6 +1105,12 @@ BEGIN
 		    )
 		    WHERE rnum > (pPageNumber - 1) * pPageSize;
 
+    elsif pOpcion = 6 then 
+            open pCursor for 
+				select 
+					PE.id AS value, 
+					PE.nombreCompleto AS label
+				from RHEPQ.capaProfesorExterno PE;
            
     END IF;
    

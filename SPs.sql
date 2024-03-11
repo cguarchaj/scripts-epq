@@ -3382,6 +3382,16 @@ BEGIN
 	        FROM PLA_PUE_PUESTO
 	        WHERE PUE_CODCIA = pPueCodCia AND PUE_CODTPP = pPueCodTpp
 	        ORDER BY PUE_CODIGO;
+	  
+	-- Obtener escalasalarial por compania, tipo puesto y puesto.
+   	ELSIF pOpcion = 7 THEN
+   		OPEN pCursor FOR
+   			SELECT
+			    P.PUE_CODCSS,
+			    CSS.CSS_DESCRIPCION 
+			FROM PLA_PUE_PUESTO P
+			LEFT JOIN RHEPQ.PLA_CSS_CLASALARIAL CSS ON CSS.CSS_CODIGO = P.PUE_CODCSS
+			WHERE P.PUE_CODCIA = pPueCodCia AND P.PUE_CODTPP = pPueCodTpp AND P.PUE_CODIGO = pPueCodigo;
     
        END IF;
 		       
@@ -6024,6 +6034,484 @@ EXCEPTION
         ROLLBACK TO transact;
         RAISE;
 END SP_PLA_GRT_GRUPOTRABAJO;
+
+    -----------------------------------------------------------
+    
+    -- Presupuesto de Plazas
+
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_PRESUPUESTO_DE_PLAZA(
+    pOpcion IN NUMBER,
+    pPlzCodcia IN VARCHAR2,
+    pPlzCodigo IN OUT NUMBER,
+    pPlzNombre IN VARCHAR2,    
+    pPlzEstado IN VARCHAR2,
+    pPlzFechaPpto IN DATE,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+
+    SAVEPOINT transact;
+
+    IF pOpcion = 3 THEN
+		UPDATE RHEPQ.PLA_PLZ_PLAZA SET
+		    PLZ_ESTADO = pPlzEstado,
+		    PLZ_FECHA_PPTO = pPlzFechaPpto
+		WHERE PLZ_CODCIA = pPlzCodcia AND PLZ_CODIGO = pPlzCodigo;
+
+	COMMIT;
+
+    END IF;
+
+    -- Lógica adicional para otras opciones
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT
+				PLZ.PLZ_CODIGO,
+				PLZ.PLZ_NOMBRE,
+				PLZ.PLZ_CODTPP,
+				TPP.TPP_DESCRIPCION,
+				PLZ.PLZ_CODPUE,
+				PUE.PUE_NOMBRE,
+				PLZ.PLZ_CODUNI,
+				UNI.UNI_COD_ORGANIZ,
+				UNI.UNI_NOMBRE,
+				PLZ.PLZ_ESTADO,
+				PLZ.PLZ_DISPRESP,
+				PLZ.PLZ_PPR_N8,
+				PLZ.PLZ_CODTMO,
+				TMO.TMO_DESCRIPCION,
+				PLZ.PLZ_CODUBI,
+				PLZ.PLZ_CODTPP,
+				PLZ.PLZ_CODAFN,
+				GRT.GRT_DESCRIPCION,
+				PLZ.PLZ_VALOR_HORA,
+				PLZ.PLZ_CEN_COSTO,
+				CEN.CCO_DESCRIPCION,
+				PLZ.PLZ_CODGRE,
+				GRE.GRE_DESCRIPCION,
+				PLZ.PLZ_CODESP,
+				ESP.ESP_DESCRIPCION,
+				PLZ.PLZ_ALMUERZO,
+				RHEPQ.FORMAT_DATE(PLZ.PLZ_FECHA_PPTO) AS PLZ_FECHA_PPTO,
+				RHEPQ.FORMAT_DATE(PLZ.PLZ_FECHA_SUPRE) AS PLZ_FECHA_SUPRE,
+				PLZ.PLZ_PPR_N1,
+				PLZ.PLZ_PPR_N2,
+				PLZ.PLZ_PPR_N3,
+				PLZ.PLZ_PPR_N4,
+				PLZ.PLZ_PPR_N5,
+				PLZ.PLZ_PPR_N6,
+				PLZ.PLZ_PPR_N7,
+				'0509' AS PPR_N0509,
+				UNI.UNI_CODIGO_2003,
+				RHEPQ.obtener_codigo_empleado_plaza(PLZ.PLZ_CODIGO) AS EMP_CODIGO,
+				RHEPQ.obtener_nombre_empleado_plaza(PLZ.PLZ_CODIGO) AS NOMBRE_EMPLEADO
+			FROM RHEPQ.PLA_PLZ_PLAZA PLZ
+			LEFT JOIN RHEPQ.PLA_PUE_PUESTO PUE ON PUE.PUE_CODTPP = PLZ.PLZ_CODTPP AND PUE.PUE_CODIGO = PLZ.PLZ_CODPUE
+						AND PUE.PUE_CODCIA = PLZ.PLZ_CODCIA
+			LEFT JOIN RHEPQ.PLA_TPP_TIPUESTO TPP ON TPP.TPP_CODIGO = PUE.PUE_CODTPP AND TPP.TPP_CODCIA = PUE.PUE_CODCIA
+			LEFT JOIN RHEPQ.PLA_UNI_UNIDAD UNI ON UNI.UNI_CODIGO = PLZ.PLZ_CODUNI AND UNI.UNI_CODCIA = PLZ.PLZ_CODCIA
+			LEFT JOIN RHEPQ.PLA_TMO_TIPO_MANOOBRA TMO ON TMO.TMO_CODIGO = PLZ.PLZ_CODTMO AND TMO.TMO_CODCIA = PLZ.PLZ_CODCIA
+			LEFT JOIN RHEPQ.PLA_GRT_GRUPOTRABAJO GRT ON GRT.GRT_CODCIA = PLZ.PLZ_CODCIA AND GRT.GRT_CODUBI = PLZ.PLZ_CODUBI 
+						AND GRT.GRT_CODTPP = PLZ.PLZ_CODTPP AND GRT.GRT_CODAFN = PLZ.PLZ_CODAFN
+			LEFT JOIN RHEPQ.PLA_CCO_CEN_COSTO CEN ON CEN.CCO_CODIGO = PLZ.PLZ_CEN_COSTO AND CEN.CCO_CODCIA = PLZ.PLZ_CODCIA 
+			LEFT JOIN RHEPQ.PLA_ESP_ESPECIALIDAD ESP ON ESP.ESP_CODGRE = PLZ.PLZ_CODGRE AND ESP.ESP_CODIGO = PLZ.PLZ_CODESP
+						AND ESP.ESP_CODCIA = PLZ.PLZ_CODCIA
+			LEFT JOIN RHEPQ.PLA_GRE_GRUPO_ESPECIALIDAD GRE ON GRE.GRE_CODIGO = ESP.ESP_CODGRE
+            WHERE PLZ.PLZ_CODCIA = pPlzCodcia AND PLZ.PLZ_CODIGO = pPlzCodigo;
+
+    ELSIF pOpcion = 5 THEN
+	    SELECT COUNT(*) INTO vContador
+	    FROM RHEPQ.PLA_PLZ_PLAZA PLZ
+	    LEFT JOIN RHEPQ.PLA_PUE_PUESTO PUE ON PUE.PUE_CODTPP = PLZ.PLZ_CODTPP AND PUE.PUE_CODIGO = PLZ.PLZ_CODPUE
+	            AND PUE.PUE_CODCIA = PLZ.PLZ_CODCIA
+	    LEFT JOIN RHEPQ.PLA_TPP_TIPUESTO TPP ON TPP.TPP_CODIGO = PUE.PUE_CODTPP AND TPP.TPP_CODCIA = PUE.PUE_CODCIA
+	    LEFT JOIN RHEPQ.PLA_UNI_UNIDAD UNI ON UNI.UNI_CODIGO = PLZ.PLZ_CODUNI AND UNI.UNI_CODCIA = PLZ.PLZ_CODCIA
+	    LEFT JOIN RHEPQ.PLA_TMO_TIPO_MANOOBRA TMO ON TMO.TMO_CODIGO = PLZ.PLZ_CODTMO AND TMO.TMO_CODCIA = PLZ.PLZ_CODCIA
+	    LEFT JOIN RHEPQ.PLA_GRT_GRUPOTRABAJO GRT ON GRT.GRT_CODCIA = PLZ.PLZ_CODCIA AND GRT.GRT_CODUBI = PLZ.PLZ_CODUBI 
+	            AND GRT.GRT_CODTPP = PLZ.PLZ_CODTPP AND GRT.GRT_CODAFN = PLZ.PLZ_CODAFN
+	    LEFT JOIN RHEPQ.PLA_CCO_CEN_COSTO CEN ON CEN.CCO_CODIGO = PLZ.PLZ_CEN_COSTO AND CEN.CCO_CODCIA = PLZ.PLZ_CODCIA
+	    LEFT JOIN RHEPQ.PLA_ESP_ESPECIALIDAD ESP ON ESP.ESP_CODGRE = PLZ.PLZ_CODGRE AND ESP.ESP_CODIGO = PLZ.PLZ_CODESP
+	            AND ESP.ESP_CODCIA = PLZ.PLZ_CODCIA
+	    LEFT JOIN RHEPQ.PLA_GRE_GRUPO_ESPECIALIDAD GRE ON GRE.GRE_CODIGO = ESP.ESP_CODGRE
+	    WHERE PLZ.PLZ_CODCIA = pPlzCodcia AND PLZ_ESTADO IN ('V', 'P')
+	    AND (
+		    pPlzNombre IS NULL
+		    OR pPlzNombre = ''
+		    OR LOWER(PLZ.PLZ_NOMBRE) LIKE '%' || LOWER(TRIM(pPlzNombre)) || '%'
+		);
+	
+	
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+
+            OPEN pCursor FOR
+		        SELECT * FROM (
+		            SELECT a.*, ROWNUM rnum
+		            FROM (
+		                SELECT
+		                    PLZ.PLZ_CODIGO,
+		                    PLZ.PLZ_NOMBRE,
+		                    PLZ.PLZ_CODTPP,
+		                    TPP.TPP_DESCRIPCION,
+		                    PLZ.PLZ_CODPUE,
+		                    PUE.PUE_NOMBRE,
+		                    PLZ.PLZ_CODUNI,
+		                    UNI.UNI_COD_ORGANIZ,
+		                    UNI.UNI_NOMBRE,
+		                    PLZ.PLZ_ESTADO,
+		                    PLZ.PLZ_DISPRESP,
+		                    PLZ.PLZ_PPR_N8,
+		                    PLZ.PLZ_CODTMO,
+		                    TMO.TMO_DESCRIPCION,
+		                    PLZ.PLZ_CODUBI,
+		                    PLZ.PLZ_CODTPP AS PLZ_CODTPP2,
+		                    PLZ.PLZ_CODAFN,
+		                    GRT.GRT_DESCRIPCION,
+		                    PLZ.PLZ_VALOR_HORA,
+		                    PLZ.PLZ_CEN_COSTO,
+		                    CEN.CCO_DESCRIPCION,
+		                    PLZ.PLZ_CODGRE,
+		                    GRE.GRE_DESCRIPCION,
+		                    PLZ.PLZ_CODESP,
+		                    ESP.ESP_DESCRIPCION,
+		                    PLZ.PLZ_ALMUERZO,
+		                    RHEPQ.FORMAT_DATE(PLZ.PLZ_FECHA_PPTO) AS PLZ_FECHA_PPTO,
+		                    RHEPQ.FORMAT_DATE(PLZ.PLZ_FECHA_SUPRE) AS PLZ_FECHA_SUPRE,
+		                    PLZ.PLZ_PPR_N1,
+		                    PLZ.PLZ_PPR_N2,
+		                    PLZ.PLZ_PPR_N3,
+		                    PLZ.PLZ_PPR_N4,
+		                    PLZ.PLZ_PPR_N5,
+		                    PLZ.PLZ_PPR_N6,
+		                    PLZ.PLZ_PPR_N7,
+		                    '0509' AS PPR_N0509,
+		                    UNI.UNI_CODIGO_2003,
+		                    RHEPQ.obtener_codigo_empleado_plaza(PLZ.PLZ_CODIGO) AS EMP_CODIGO,
+		                    RHEPQ.obtener_nombre_empleado_plaza(PLZ.PLZ_CODIGO) AS NOMBRE_EMPLEADO
+		                FROM RHEPQ.PLA_PLZ_PLAZA PLZ
+		                LEFT JOIN RHEPQ.PLA_PUE_PUESTO PUE ON PUE.PUE_CODTPP = PLZ.PLZ_CODTPP AND PUE.PUE_CODIGO = PLZ.PLZ_CODPUE
+		                    AND PUE.PUE_CODCIA = PLZ.PLZ_CODCIA
+		                LEFT JOIN RHEPQ.PLA_TPP_TIPUESTO TPP ON TPP.TPP_CODIGO = PUE.PUE_CODTPP AND TPP.TPP_CODCIA = PUE.PUE_CODCIA
+		                LEFT JOIN RHEPQ.PLA_UNI_UNIDAD UNI ON UNI.UNI_CODIGO = PLZ.PLZ_CODUNI AND UNI.UNI_CODCIA = PLZ.PLZ_CODCIA
+		                LEFT JOIN RHEPQ.PLA_TMO_TIPO_MANOOBRA TMO ON TMO.TMO_CODIGO = PLZ.PLZ_CODTMO AND TMO.TMO_CODCIA = PLZ.PLZ_CODCIA
+		                LEFT JOIN RHEPQ.PLA_GRT_GRUPOTRABAJO GRT ON GRT.GRT_CODCIA = PLZ.PLZ_CODCIA AND GRT.GRT_CODUBI = PLZ.PLZ_CODUBI 
+		                    AND GRT.GRT_CODTPP = PLZ.PLZ_CODTPP AND GRT.GRT_CODAFN = PLZ.PLZ_CODAFN
+		                LEFT JOIN RHEPQ.PLA_CCO_CEN_COSTO CEN ON CEN.CCO_CODIGO = PLZ.PLZ_CEN_COSTO AND CEN.CCO_CODCIA = PLZ.PLZ_CODCIA 
+		                LEFT JOIN RHEPQ.PLA_ESP_ESPECIALIDAD ESP ON ESP.ESP_CODGRE = PLZ.PLZ_CODGRE AND ESP.ESP_CODIGO = PLZ.PLZ_CODESP
+		                    AND ESP.ESP_CODCIA = PLZ.PLZ_CODCIA
+		                LEFT JOIN RHEPQ.PLA_GRE_GRUPO_ESPECIALIDAD GRE ON GRE.GRE_CODIGO = ESP.ESP_CODGRE
+		                WHERE PLZ.PLZ_CODCIA = pPlzCodcia AND PLZ_ESTADO IN ('V', 'P')
+					    AND (
+						    pPlzNombre IS NULL
+						    OR pPlzNombre = ''
+						    OR LOWER(PLZ.PLZ_NOMBRE) LIKE '%' || LOWER(TRIM(pPlzNombre)) || '%'
+						)
+		                ORDER BY PLZ.PLZ_CODIGO
+		            ) a
+			        WHERE ROWNUM <= pPageNumber * pPageSize
+			    )
+			    WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+	END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PRESUPUESTO_DE_PLAZA;
+
+    -----------------------------------------------------------
+
+    -- Reubicacion de plazas por unidad
+
+    CREATE OR REPLACE PROCEDURE RHEPQ.SP_REUBICA_PLAZAS (
+    pCompania IN VARCHAR2,
+    pViejaUnidad IN NUMBER,
+    pNuevaUnidad IN NUMBER,
+    pCcosto IN NUMBER,
+    pFlag IN VARCHAR2,
+    pMensaje OUT VARCHAR2,
+    pCursor OUT SYS_REFCURSOR
+) AS
+    vPlazas NUMBER;
+BEGIN
+    IF pFlag = 'S' THEN
+        UPDATE RHEPQ.pla_plz_plaza
+        SET plz_coduni = pNuevaUnidad,
+            plz_cen_costo = pCcosto
+        WHERE plz_codcia = pCompania
+        AND plz_coduni = pViejaUnidad;
+
+    ELSE
+        UPDATE RHEPQ.pla_plz_plaza
+        SET plz_coduni = pNuevaUnidad
+        WHERE plz_codcia = pCompania
+        AND plz_coduni = pViejaUnidad;
+    END IF;
+
+    vPlazas := SQL%ROWCOUNT;
+
+    -- Usar un cursor para devolver el mensaje
+    IF vPlazas > 0 THEN
+        OPEN pCursor FOR
+        SELECT 'Se reubicaron ' || TO_CHAR(vPlazas) || ' Plazas a la Unidad Especificada con éxito.' AS Mensaje FROM DUAL;
+    ELSE
+        OPEN pCursor FOR
+        SELECT 'No se encontraron registros para actualizar.' AS Mensaje FROM DUAL;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        pMensaje := SQLERRM; 
+END SP_REUBICA_PLAZAS;
+
+    -----------------------------------------------------------
+
+    -- Supresion de plazas
+
+    CREATE OR REPLACE PROCEDURE RHEPQ.SP_SUPRESION_PLAZA(
+    pOpcion IN NUMBER,
+    pPlzCodcia IN VARCHAR2,
+    pPlzCodigo IN OUT NUMBER,
+    pPlzNombre IN VARCHAR2,    
+    pPlzEstado IN VARCHAR2,
+    pPlzFechaSupre IN DATE,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+
+    SAVEPOINT transact;
+
+    IF pOpcion = 3 THEN
+		UPDATE RHEPQ.PLA_PLZ_PLAZA SET
+		    PLZ_ESTADO = pPlzEstado,
+		    PLZ_FECHA_SUPRE = pPlzFechaSupre
+		WHERE PLZ_CODCIA = pPlzCodcia AND PLZ_CODIGO = pPlzCodigo;
+
+	COMMIT;
+
+    END IF;
+
+    -- Lógica adicional para otras opciones
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT
+				PLZ.PLZ_CODIGO,
+				PLZ.PLZ_NOMBRE,
+				PLZ.PLZ_CODTPP,
+				TPP.TPP_DESCRIPCION,
+				PLZ.PLZ_CODPUE,
+				PUE.PUE_NOMBRE,
+				PLZ.PLZ_CODUNI,
+				UNI.UNI_COD_ORGANIZ,
+				UNI.UNI_NOMBRE,
+				PLZ.PLZ_ESTADO,
+				PLZ.PLZ_DISPRESP,
+				PLZ.PLZ_PPR_N8,
+				PLZ.PLZ_CODTMO,
+				TMO.TMO_DESCRIPCION,
+				PLZ.PLZ_CODUBI,
+				PLZ.PLZ_CODTPP,
+				PLZ.PLZ_CODAFN,
+				GRT.GRT_DESCRIPCION,
+				PLZ.PLZ_VALOR_HORA,
+				PLZ.PLZ_CEN_COSTO,
+				CEN.CCO_DESCRIPCION,
+				PLZ.PLZ_CODGRE,
+				GRE.GRE_DESCRIPCION,
+				PLZ.PLZ_CODESP,
+				ESP.ESP_DESCRIPCION,
+				PLZ.PLZ_ALMUERZO,
+				RHEPQ.FORMAT_DATE(PLZ.PLZ_FECHA_PPTO) AS PLZ_FECHA_PPTO,
+				RHEPQ.FORMAT_DATE(PLZ.PLZ_FECHA_SUPRE) AS PLZ_FECHA_SUPRE,
+				PLZ.PLZ_PPR_N1,
+				PLZ.PLZ_PPR_N2,
+				PLZ.PLZ_PPR_N3,
+				PLZ.PLZ_PPR_N4,
+				PLZ.PLZ_PPR_N5,
+				PLZ.PLZ_PPR_N6,
+				PLZ.PLZ_PPR_N7,
+				'0509' AS PPR_N0509,
+				UNI.UNI_CODIGO_2003,
+				RHEPQ.obtener_codigo_empleado_plaza(PLZ.PLZ_CODIGO) AS EMP_CODIGO,
+				RHEPQ.obtener_nombre_empleado_plaza(PLZ.PLZ_CODIGO) AS NOMBRE_EMPLEADO
+			FROM RHEPQ.PLA_PLZ_PLAZA PLZ
+			LEFT JOIN RHEPQ.PLA_PUE_PUESTO PUE ON PUE.PUE_CODTPP = PLZ.PLZ_CODTPP AND PUE.PUE_CODIGO = PLZ.PLZ_CODPUE
+						AND PUE.PUE_CODCIA = PLZ.PLZ_CODCIA
+			LEFT JOIN RHEPQ.PLA_TPP_TIPUESTO TPP ON TPP.TPP_CODIGO = PUE.PUE_CODTPP AND TPP.TPP_CODCIA = PUE.PUE_CODCIA
+			LEFT JOIN RHEPQ.PLA_UNI_UNIDAD UNI ON UNI.UNI_CODIGO = PLZ.PLZ_CODUNI AND UNI.UNI_CODCIA = PLZ.PLZ_CODCIA
+			LEFT JOIN RHEPQ.PLA_TMO_TIPO_MANOOBRA TMO ON TMO.TMO_CODIGO = PLZ.PLZ_CODTMO AND TMO.TMO_CODCIA = PLZ.PLZ_CODCIA
+			LEFT JOIN RHEPQ.PLA_GRT_GRUPOTRABAJO GRT ON GRT.GRT_CODCIA = PLZ.PLZ_CODCIA AND GRT.GRT_CODUBI = PLZ.PLZ_CODUBI 
+						AND GRT.GRT_CODTPP = PLZ.PLZ_CODTPP AND GRT.GRT_CODAFN = PLZ.PLZ_CODAFN
+			LEFT JOIN RHEPQ.PLA_CCO_CEN_COSTO CEN ON CEN.CCO_CODIGO = PLZ.PLZ_CEN_COSTO AND CEN.CCO_CODCIA = PLZ.PLZ_CODCIA 
+			LEFT JOIN RHEPQ.PLA_ESP_ESPECIALIDAD ESP ON ESP.ESP_CODGRE = PLZ.PLZ_CODGRE AND ESP.ESP_CODIGO = PLZ.PLZ_CODESP
+						AND ESP.ESP_CODCIA = PLZ.PLZ_CODCIA
+			LEFT JOIN RHEPQ.PLA_GRE_GRUPO_ESPECIALIDAD GRE ON GRE.GRE_CODIGO = ESP.ESP_CODGRE
+            WHERE PLZ.PLZ_CODCIA = pPlzCodcia AND PLZ.PLZ_CODIGO = pPlzCodigo;
+
+    ELSIF pOpcion = 5 THEN
+	    SELECT COUNT(*) INTO vContador
+	    FROM RHEPQ.PLA_PLZ_PLAZA PLZ
+	    LEFT JOIN RHEPQ.PLA_PUE_PUESTO PUE ON PUE.PUE_CODTPP = PLZ.PLZ_CODTPP AND PUE.PUE_CODIGO = PLZ.PLZ_CODPUE
+	            AND PUE.PUE_CODCIA = PLZ.PLZ_CODCIA
+	    LEFT JOIN RHEPQ.PLA_TPP_TIPUESTO TPP ON TPP.TPP_CODIGO = PUE.PUE_CODTPP AND TPP.TPP_CODCIA = PUE.PUE_CODCIA
+	    LEFT JOIN RHEPQ.PLA_UNI_UNIDAD UNI ON UNI.UNI_CODIGO = PLZ.PLZ_CODUNI AND UNI.UNI_CODCIA = PLZ.PLZ_CODCIA
+	    LEFT JOIN RHEPQ.PLA_TMO_TIPO_MANOOBRA TMO ON TMO.TMO_CODIGO = PLZ.PLZ_CODTMO AND TMO.TMO_CODCIA = PLZ.PLZ_CODCIA
+	    LEFT JOIN RHEPQ.PLA_GRT_GRUPOTRABAJO GRT ON GRT.GRT_CODCIA = PLZ.PLZ_CODCIA AND GRT.GRT_CODUBI = PLZ.PLZ_CODUBI 
+	            AND GRT.GRT_CODTPP = PLZ.PLZ_CODTPP AND GRT.GRT_CODAFN = PLZ.PLZ_CODAFN
+	    LEFT JOIN RHEPQ.PLA_CCO_CEN_COSTO CEN ON CEN.CCO_CODIGO = PLZ.PLZ_CEN_COSTO AND CEN.CCO_CODCIA = PLZ.PLZ_CODCIA
+	    LEFT JOIN RHEPQ.PLA_ESP_ESPECIALIDAD ESP ON ESP.ESP_CODGRE = PLZ.PLZ_CODGRE AND ESP.ESP_CODIGO = PLZ.PLZ_CODESP
+	            AND ESP.ESP_CODCIA = PLZ.PLZ_CODCIA
+	    LEFT JOIN RHEPQ.PLA_GRE_GRUPO_ESPECIALIDAD GRE ON GRE.GRE_CODIGO = ESP.ESP_CODGRE
+	    WHERE PLZ.PLZ_CODCIA = pPlzCodcia AND PLZ_ESTADO = 'V'
+	    AND (
+		    pPlzNombre IS NULL
+		    OR pPlzNombre = ''
+		    OR LOWER(PLZ.PLZ_NOMBRE) LIKE '%' || LOWER(TRIM(pPlzNombre)) || '%'
+		);
+	
+	
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+
+            OPEN pCursor FOR
+		        SELECT * FROM (
+		            SELECT a.*, ROWNUM rnum
+		            FROM (
+		                SELECT
+		                    PLZ.PLZ_CODIGO,
+		                    PLZ.PLZ_NOMBRE,
+		                    PLZ.PLZ_CODTPP,
+		                    TPP.TPP_DESCRIPCION,
+		                    PLZ.PLZ_CODPUE,
+		                    PUE.PUE_NOMBRE,
+		                    PLZ.PLZ_CODUNI,
+		                    UNI.UNI_COD_ORGANIZ,
+		                    UNI.UNI_NOMBRE,
+		                    PLZ.PLZ_ESTADO,
+		                    PLZ.PLZ_DISPRESP,
+		                    PLZ.PLZ_PPR_N8,
+		                    PLZ.PLZ_CODTMO,
+		                    TMO.TMO_DESCRIPCION,
+		                    PLZ.PLZ_CODUBI,
+		                    PLZ.PLZ_CODTPP AS PLZ_CODTPP2,
+		                    PLZ.PLZ_CODAFN,
+		                    GRT.GRT_DESCRIPCION,
+		                    PLZ.PLZ_VALOR_HORA,
+		                    PLZ.PLZ_CEN_COSTO,
+		                    CEN.CCO_DESCRIPCION,
+		                    PLZ.PLZ_CODGRE,
+		                    GRE.GRE_DESCRIPCION,
+		                    PLZ.PLZ_CODESP,
+		                    ESP.ESP_DESCRIPCION,
+		                    PLZ.PLZ_ALMUERZO,
+		                    RHEPQ.FORMAT_DATE(PLZ.PLZ_FECHA_PPTO) AS PLZ_FECHA_PPTO,
+		                    RHEPQ.FORMAT_DATE(PLZ.PLZ_FECHA_SUPRE) AS PLZ_FECHA_SUPRE,
+		                    PLZ.PLZ_PPR_N1,
+		                    PLZ.PLZ_PPR_N2,
+		                    PLZ.PLZ_PPR_N3,
+		                    PLZ.PLZ_PPR_N4,
+		                    PLZ.PLZ_PPR_N5,
+		                    PLZ.PLZ_PPR_N6,
+		                    PLZ.PLZ_PPR_N7,
+		                    '0509' AS PPR_N0509,
+		                    UNI.UNI_CODIGO_2003,
+		                    RHEPQ.obtener_codigo_empleado_plaza(PLZ.PLZ_CODIGO) AS EMP_CODIGO,
+		                    RHEPQ.obtener_nombre_empleado_plaza(PLZ.PLZ_CODIGO) AS NOMBRE_EMPLEADO
+		                FROM RHEPQ.PLA_PLZ_PLAZA PLZ
+		                LEFT JOIN RHEPQ.PLA_PUE_PUESTO PUE ON PUE.PUE_CODTPP = PLZ.PLZ_CODTPP AND PUE.PUE_CODIGO = PLZ.PLZ_CODPUE
+		                    AND PUE.PUE_CODCIA = PLZ.PLZ_CODCIA
+		                LEFT JOIN RHEPQ.PLA_TPP_TIPUESTO TPP ON TPP.TPP_CODIGO = PUE.PUE_CODTPP AND TPP.TPP_CODCIA = PUE.PUE_CODCIA
+		                LEFT JOIN RHEPQ.PLA_UNI_UNIDAD UNI ON UNI.UNI_CODIGO = PLZ.PLZ_CODUNI AND UNI.UNI_CODCIA = PLZ.PLZ_CODCIA
+		                LEFT JOIN RHEPQ.PLA_TMO_TIPO_MANOOBRA TMO ON TMO.TMO_CODIGO = PLZ.PLZ_CODTMO AND TMO.TMO_CODCIA = PLZ.PLZ_CODCIA
+		                LEFT JOIN RHEPQ.PLA_GRT_GRUPOTRABAJO GRT ON GRT.GRT_CODCIA = PLZ.PLZ_CODCIA AND GRT.GRT_CODUBI = PLZ.PLZ_CODUBI 
+		                    AND GRT.GRT_CODTPP = PLZ.PLZ_CODTPP AND GRT.GRT_CODAFN = PLZ.PLZ_CODAFN
+		                LEFT JOIN RHEPQ.PLA_CCO_CEN_COSTO CEN ON CEN.CCO_CODIGO = PLZ.PLZ_CEN_COSTO AND CEN.CCO_CODCIA = PLZ.PLZ_CODCIA 
+		                LEFT JOIN RHEPQ.PLA_ESP_ESPECIALIDAD ESP ON ESP.ESP_CODGRE = PLZ.PLZ_CODGRE AND ESP.ESP_CODIGO = PLZ.PLZ_CODESP
+		                    AND ESP.ESP_CODCIA = PLZ.PLZ_CODCIA
+		                LEFT JOIN RHEPQ.PLA_GRE_GRUPO_ESPECIALIDAD GRE ON GRE.GRE_CODIGO = ESP.ESP_CODGRE
+		                WHERE PLZ.PLZ_CODCIA = pPlzCodcia AND PLZ_ESTADO = 'V'
+					    AND (
+						    pPlzNombre IS NULL
+						    OR pPlzNombre = ''
+						    OR LOWER(PLZ.PLZ_NOMBRE) LIKE '%' || LOWER(TRIM(pPlzNombre)) || '%'
+						)
+		                ORDER BY PLZ.PLZ_CODIGO
+		            ) a
+			        WHERE ROWNUM <= pPageNumber * pPageSize
+			    )
+			    WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+	END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_SUPRESION_PLAZA;
+
+    -----------------------------------------------------------
+
+    -- Supresion de puestos y plazas
+
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_SUPRESION_PUESTOS_PLAZAS (
+    pCompania IN VARCHAR2,
+    pCodTpp IN NUMBER,
+    pCodPue IN NUMBER,
+    pMensaje OUT VARCHAR2,
+    pCursor OUT SYS_REFCURSOR
+) AS
+    vNumero NUMBER;
+BEGIN
+    -- Verificar si hay plazas ocupadas asociadas al puesto
+    SELECT COUNT(*)
+    INTO vNumero
+    FROM RHEPQ.pla_plz_plaza
+    WHERE plz_codcia = pCompania
+    AND plz_codtpp = pCodTpp
+    AND plz_codpue = pCodPue
+    AND plz_estado = 'O';
+
+    IF vNumero = 0 THEN
+        -- No hay plazas ocupadas, proceder con la supresión
+        -- Actualiza las Plazas a Suprimidas
+        UPDATE RHEPQ.pla_plz_plaza
+        SET plz_estado = 'S',
+            plz_fecha_supre = SYSDATE
+        WHERE plz_codcia = pCompania
+        AND plz_codtpp = pCodTpp
+        AND plz_codpue = pCodPue;
+
+        -- Actualiza los Puestos a Suprimidos
+        UPDATE RHEPQ.pla_pue_puesto
+        SET pue_estado = 'S',
+            pue_fecha_supre = SYSDATE
+        WHERE pue_codcia = pCompania
+        AND pue_codtpp = pCodTpp
+        AND pue_codigo = pCodPue;
+
+        -- Preparar mensaje de éxito
+        OPEN pCursor FOR
+        SELECT 'Puesto y plazas asociadas suprimidos con éxito.' AS Mensaje FROM DUAL;
+    ELSE
+        -- Hay plazas ocupadas, no se puede suprimir
+        pMensaje := 'Puesto no puede suprimirse. Usado por plazas ocupadas.';
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        pMensaje := SQLERRM;
+        RAISE;
+END SP_SUPRESION_PUESTOS_PLAZAS;
+
 
 --######################## AQUI TERMINA MODULO ESTRUCTURA ORGANIZATIVA ########################
 -----------------------------------------------------------
@@ -11371,22 +11859,22 @@ END SP_PLA_EMP_PROBIDAD_DET;
 
 ------------------------------------------------
 
-   --// Uniformes empleados EPQ
+   --// Uniformes empleados EPQ # Pendiente
 
 
 ------------------------------------------------
 
-   --// Marcas de reloj
+   --// Marcas de reloj  # Pendiente
 
 
 ------------------------------------------------
 
-   --// Control de cafeteria
+   --// Control de cafeteria -- no se utiliza
 
 
    ------------------------------------------------
    
-   --// Control de reloj
+   --// Control de reloj -- no se utiliza
 
 
 -----------------------------------------------------------
@@ -11395,31 +11883,18 @@ END SP_PLA_EMP_PROBIDAD_DET;
 
 ----------------------------------------------------------
 
------------------------------------------------------------
+-------------------------- #### MODULO PERSONAL AJENO ----------------------------------
 
---######################## MODULO ADMINISTRACION DE SALARIOS ########################
+--- ############ SUBMODULO DE CATALOGOS
 
--- ##### TIPOS DE DESCUENTOS:
+------------------------------------------------
 
-CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_TDC_TIPO_DESCUENTO(
+   --// Tipos de gafetes
+
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_CIP_TIPO_GAFETE (
     pOpcion IN NUMBER,
-    pTdcCodcia IN OUT VARCHAR2,
-    pTdcCodigo IN OUT VARCHAR2,
-    pTdcDescripcion IN VARCHAR2 DEFAULT NULL,
-    pTdcCtaContable IN VARCHAR2 DEFAULT NULL,
-    pTdcNombreCorto IN VARCHAR2 DEFAULT NULL,
-    pTdcPrioridad IN NUMBER DEFAULT NULL,
-    pTdcRenta IN VARCHAR2 DEFAULT NULL,
-    pTdcAfp IN VARCHAR2 DEFAULT NULL,
-    pTdcSalarioProm IN VARCHAR2 DEFAULT NULL,
-    pTdcContableCat IN VARCHAR2 DEFAULT NULL,
-    pTdcPrioridadReporte IN NUMBER DEFAULT NULL,
-    pTdcCtaPpto1 IN VARCHAR2 DEFAULT NULL,
-    pTdcCtaPpto2 IN VARCHAR2 DEFAULT NULL,
-    pTdcCtaContable2 IN VARCHAR2 DEFAULT NULL,
-    pTdcContableCat2 IN VARCHAR2 DEFAULT NULL,
-    pTdcCtaContable3 IN VARCHAR2 DEFAULT NULL,
-    pTdcContableCat3 IN VARCHAR2 DEFAULT NULL,
+    pGafCodigo IN OUT NUMBER,
+    pGafDescripcion IN VARCHAR2,
     pEstado IN NUMBER DEFAULT 1,
     pUsuario IN NUMBER,
     pPageNumber IN NUMBER DEFAULT 1,
@@ -11429,15 +11904,956 @@ CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_TDC_TIPO_DESCUENTO(
 ) AS
     vContador NUMBER;
 BEGIN
-    
+    -- Punto de guardado para manejar transacciones
     SAVEPOINT transact;
+   
+    IF pOpcion = 1 THEN
+        INSERT INTO CIP_TIPO_GAFETE (
+            CIP_GAF_CODIGO,
+            CIP_GAF_DESCRIPCION
+        ) VALUES (
+            pGafCodigo,
+            pGafDescripcion
+        )
+        RETURNING CIP_GAF_CODIGO INTO pGafCodigo;
+       
+    ELSIF pOpcion = 2 THEN
+        UPDATE CIP_TIPO_GAFETE SET
+            CIP_GAF_DESCRIPCION = pGafDescripcion
+        WHERE CIP_GAF_CODIGO = pGafCodigo;
+       
+   COMMIT;
+       
+    END IF;
 
-    IF pOpcion = 6 THEN
+    -- Opciones de selección y paginación
+    IF pOpcion IN (1, 2, 3, 4) THEN
         OPEN pCursor FOR
             SELECT
-                TDC_CODIGO AS value, 
-                TDC_DESCRIPCION AS label
-            FROM PLA_TDC_TIPO_DESCUENTO;
+                CIP_GAF_CODIGO,
+                CIP_GAF_DESCRIPCION
+            FROM CIP_TIPO_GAFETE
+            WHERE CIP_GAF_CODIGO = pGafCodigo;
+
+    ELSIF pOpcion = 5 THEN
+	    SELECT COUNT(*) INTO vContador
+	    FROM CIP_TIPO_GAFETE
+	    WHERE 
+	    (
+	        pGafDescripcion IS NULL
+	        OR pGafDescripcion = ''
+	        OR LOWER(CIP_GAF_DESCRIPCION) LIKE '%' || LOWER(TRIM(pGafDescripcion)) || '%'
+	    );
+	
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+	
+	    -- Abrir el cursor para obtener los resultados paginados considerando la búsqueda por descripción
+	    OPEN pCursor FOR
+	        SELECT * FROM (
+	            SELECT a.*, ROWNUM rnum
+	            FROM (
+	                SELECT
+	                    CIP_GAF_CODIGO,
+	                    CIP_GAF_DESCRIPCION
+	                FROM CIP_TIPO_GAFETE
+	                WHERE 
+	                (
+	                    pGafDescripcion IS NULL
+	                    OR pGafDescripcion = ''
+	                    OR LOWER(CIP_GAF_DESCRIPCION) LIKE '%' || LOWER(TRIM(pGafDescripcion)) || '%'
+	                )
+	                ORDER BY CIP_GAF_CODIGO
+	            ) a
+	            WHERE ROWNUM <= pPageNumber * pPageSize
+	        )
+	        WHERE rnum > (pPageNumber - 1) * pPageSize;
+           
+     ELSIF pOpcion = 6 THEN -- Lista simple
+        OPEN pCursor FOR
+            SELECT CIP_GAF_CODIGO AS value, CIP_GAF_DESCRIPCION AS label
+            FROM CIP_TIPO_GAFETE;
+           
+    END IF;
+
+    EXCEPTION
+            WHEN OTHERS THEN
+                ROLLBACK TO transact;
+                RAISE;
+    END SP_CIP_TIPO_GAFETE;
+
+------------------------------------------------
+
+   --// Areas de Acceso
+
+    CREATE OR REPLACE PROCEDURE RHEPQ.SP_CIP_AREAS (
+    pOpcion IN NUMBER,
+    pCipAreaCodigo IN OUT NUMBER,
+    pCipAreaDescripcion IN VARCHAR2,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+    SAVEPOINT transact;
+    IF pOpcion = 1 THEN -- Inserción
+        INSERT INTO RHEPQ.CIP_AREAS (
+            CIP_AREA_CODIGO,
+            CIP_AREA_DESCRIPCION
+        ) VALUES (
+            pCipAreaCodigo,
+            pCipAreaDescripcion
+        )
+        RETURNING CIP_AREA_CODIGO INTO pCipAreaCodigo;
+    ELSIF pOpcion = 2 THEN -- Actualización
+        UPDATE RHEPQ.CIP_AREAS SET
+            CIP_AREA_DESCRIPCION = pCipAreaDescripcion
+        WHERE CIP_AREA_CODIGO = pCipAreaCodigo;
+    END IF; -- Cierra el primer bloque IF
+    COMMIT;
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT
+                CIP_AREA_CODIGO,
+                CIP_AREA_DESCRIPCION
+            FROM RHEPQ.CIP_AREAS
+            WHERE CIP_AREA_CODIGO = pCipAreaCodigo;
+    ELSIF pOpcion = 5 THEN -- Paginación
+	    SELECT COUNT(*) INTO vContador
+	    FROM RHEPQ.CIP_AREAS
+	    WHERE (pCipAreaDescripcion IS NULL
+	           OR pCipAreaDescripcion = ''
+	           OR LOWER(CIP_AREA_DESCRIPCION) LIKE '%' || LOWER(TRIM(pCipAreaDescripcion)) || '%');
+	
+	   		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+	
+	    -- Abrir el cursor para obtener los resultados paginados y filtrados
+	    OPEN pCursor FOR
+	        SELECT * FROM (
+	            SELECT a.*, ROWNUM rnum
+	            FROM (
+	                SELECT
+	                    CIP_AREA_CODIGO,
+	                    CIP_AREA_DESCRIPCION
+	                FROM RHEPQ.CIP_AREAS
+	                WHERE (pCipAreaDescripcion IS NULL
+	                       OR pCipAreaDescripcion = ''
+	                       OR LOWER(CIP_AREA_DESCRIPCION) LIKE '%' || LOWER(TRIM(pCipAreaDescripcion)) || '%')
+	                ORDER BY CIP_AREA_CODIGO
+	            ) a
+	            WHERE ROWNUM <= pPageNumber * pPageSize
+	        )
+	        WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+    ELSIF pOpcion = 6 THEN -- Lista simple
+        OPEN pCursor FOR
+            SELECT CIP_AREA_CODIGO AS value, CIP_AREA_DESCRIPCION AS label
+            FROM RHEPQ.CIP_AREAS;
+    END IF;
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK TO transact;
+            RAISE;
+    END SP_CIP_AREAS;
+
+------------------------------------------------
+
+   --// Tipos de Empresa
+
+    CREATE OR REPLACE PROCEDURE RHEPQ.SP_CIP_TIPO_EMPRESA (
+    pOpcion IN NUMBER,
+    pCipTipCodigo IN OUT NUMBER,
+    pCipTipDescripcion IN VARCHAR2,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+	
+    SAVEPOINT transact;
+   
+    IF pOpcion = 1 THEN -- Inserción
+        INSERT INTO RHEPQ.CIP_TIPO_EMPRESA (
+            CIP_TIP_CODIGO,
+            CIP_TIP_DESCRIPCION
+        ) VALUES (
+            pCipTipCodigo,
+            pCipTipDescripcion
+        )
+        RETURNING CIP_TIP_CODIGO INTO pCipTipCodigo;
+       
+    ELSIF pOpcion = 2 THEN -- Actualización
+        UPDATE RHEPQ.CIP_TIPO_EMPRESA SET
+            CIP_TIP_DESCRIPCION = pCipTipDescripcion
+        WHERE CIP_TIP_CODIGO = pCipTipCodigo;
+       
+	COMMIT;
+       
+   END IF; -- Cierra el primer bloque IF
+   
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT
+                CIP_TIP_CODIGO,
+                CIP_TIP_DESCRIPCION
+            FROM RHEPQ.CIP_TIPO_EMPRESA
+            WHERE CIP_TIP_CODIGO = pCipTipCodigo;
+           
+    ELSIF pOpcion = 5 THEN -- Paginación
+	    SELECT COUNT(*) INTO vContador
+	    FROM RHEPQ.CIP_TIPO_EMPRESA
+	    WHERE (pCipTipDescripcion IS NULL
+	           OR pCipTipDescripcion = ''
+	           OR LOWER(CIP_TIP_DESCRIPCION) LIKE '%' || LOWER(TRIM(pCipTipDescripcion)) || '%');
+	
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+	
+	    -- Abrir el cursor para obtener los resultados paginados y filtrados
+	    OPEN pCursor FOR
+	        SELECT * FROM (
+	            SELECT a.*, ROWNUM rnum
+	            FROM (
+	                SELECT
+	                    CIP_TIP_CODIGO,
+	                    CIP_TIP_DESCRIPCION
+	                FROM RHEPQ.CIP_TIPO_EMPRESA
+	                WHERE (pCipTipDescripcion IS NULL
+	                       OR pCipTipDescripcion = ''
+	                       OR LOWER(CIP_TIP_DESCRIPCION) LIKE '%' || LOWER(TRIM(pCipTipDescripcion)) || '%')
+	                ORDER BY CIP_TIP_CODIGO
+	            ) a
+	            WHERE ROWNUM <= pPageNumber * pPageSize -- Límite superior para la paginación
+	        )
+	        WHERE rnum > (pPageNumber - 1) * pPageSize; 
+       
+    ELSIF pOpcion = 6 THEN -- Lista simple
+        OPEN pCursor FOR
+            SELECT CIP_TIP_CODIGO AS value, CIP_TIP_DESCRIPCION AS label
+            FROM RHEPQ.CIP_TIPO_EMPRESA;
+    END IF;
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK TO transact;
+            RAISE;
+    END SP_CIP_TIPO_EMPRESA;
+
+------------------------------------------------
+
+   --// Estatus
+
+    CREATE OR REPLACE PROCEDURE RHEPQ.SP_CIP_ESTATUS (
+    pOpcion IN NUMBER,
+    pCipEstCodigo IN OUT NUMBER,
+    pCipEstDescripcion IN VARCHAR2,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+    SAVEPOINT transact;
+   
+    IF pOpcion = 1 THEN -- Inserción
+        INSERT INTO RHEPQ.CIP_ESTATUS (
+            CIP_EST_CODIGO,
+            CIP_EST_DESCRIPCION
+        ) VALUES (
+            pCipEstCodigo,
+            pCipEstDescripcion
+        )
+        RETURNING CIP_EST_CODIGO INTO pCipEstCodigo;
+       
+    ELSIF pOpcion = 2 THEN -- Actualización
+        UPDATE RHEPQ.CIP_ESTATUS SET
+            CIP_EST_DESCRIPCION = pCipEstDescripcion
+        WHERE CIP_EST_CODIGO = pCipEstCodigo;
+
+   COMMIT;
+       
+    END IF; -- Cierra el primer bloque IF
+    
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT
+                CIP_EST_CODIGO,
+                CIP_EST_DESCRIPCION
+            FROM RHEPQ.CIP_ESTATUS
+            WHERE CIP_EST_CODIGO = pCipEstCodigo;
+           
+    ELSIF pOpcion = 5 THEN -- Paginación
+	  SELECT COUNT(*) INTO vContador
+	    FROM RHEPQ.CIP_ESTATUS
+	    WHERE (pCipEstDescripcion IS NULL
+	           OR pCipEstDescripcion = ''
+	           OR LOWER(CIP_EST_DESCRIPCION) LIKE '%' || LOWER(TRIM(pCipEstDescripcion)) || '%');
+	
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+	
+	    -- Abrir el cursor para obtener los resultados paginados y filtrados
+	    OPEN pCursor FOR
+	        SELECT * FROM (
+	            SELECT a.*, ROWNUM rnum
+	            FROM (
+	                SELECT
+	                    CIP_EST_CODIGO,
+	                    CIP_EST_DESCRIPCION
+	                FROM RHEPQ.CIP_ESTATUS
+	                WHERE (pCipEstDescripcion IS NULL
+	                       OR pCipEstDescripcion = ''
+	                       OR LOWER(CIP_EST_DESCRIPCION) LIKE '%' || LOWER(TRIM(pCipEstDescripcion)) || '%')
+	                ORDER BY CIP_EST_CODIGO
+	            ) a
+	            WHERE ROWNUM <= pPageNumber * pPageSize -- Límite superior para la paginación
+	        )
+	        WHERE rnum > (pPageNumber - 1) * pPageSize;
+           
+    ELSIF pOpcion = 6 THEN -- Lista simple
+        OPEN pCursor FOR
+            SELECT CIP_EST_CODIGO AS value, CIP_EST_DESCRIPCION AS label
+            FROM RHEPQ.CIP_ESTATUS;
+    END IF;
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK TO transact;
+            RAISE;
+    END SP_CIP_ESTATUS;
+
+------------------------------------------------
+
+   --// Tipos de Puestos
+
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_CIP_PUESTO (
+    pOpcion IN NUMBER,
+    pCipPuestoCodigo IN OUT NUMBER,
+    pCipEmpCodigo IN NUMBER,
+    pCipTipCodigo IN NUMBER,
+    pCipPuestoDescripcion IN VARCHAR2,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+	
+    SAVEPOINT transact;
+   
+    IF pOpcion = 1 THEN -- Inserción
+        SELECT COUNT(*) + 1 INTO vContador
+            FROM RHEPQ.CIP_PUESTO
+            WHERE CIP_EMP_CODIGO = pCipEmpCodigo
+              AND CIP_TIP_CODIGO = pCipTipCodigo
+              AND CIP_PUESTO_DESCRIPCION <> pCipPuestoDescripcion;
+        INSERT INTO RHEPQ.CIP_PUESTO (
+            CIP_PUESTO_CODIGO,
+            CIP_EMP_CODIGO,
+            CIP_TIP_CODIGO,
+            CIP_PUESTO_DESCRIPCION
+        ) VALUES (
+            vContador,
+            pCipEmpCodigo,
+            pCipTipCodigo,
+            pCipPuestoDescripcion
+        )
+        RETURNING CIP_PUESTO_CODIGO INTO pCipPuestoCodigo;
+       
+    ELSIF pOpcion = 2 THEN -- Actualización
+        UPDATE RHEPQ.CIP_PUESTO SET
+            CIP_PUESTO_DESCRIPCION = pCipPuestoDescripcion
+        WHERE CIP_PUESTO_CODIGO = pCipPuestoCodigo
+          AND CIP_EMP_CODIGO = pCipEmpCodigo
+          AND CIP_TIP_CODIGO = pCipTipCodigo;
+
+    COMMIT;
+         
+    END IF; -- Cierra el primer bloque IF
+   
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT DISTINCT
+                        p.CIP_PUESTO_CODIGO,
+                        p.CIP_EMP_CODIGO,
+                        e.CIP_EMP_NOMBRE AS EMPRESA_NOMBRE,
+                        p.CIP_TIP_CODIGO,
+                        t.CIP_TIP_DESCRIPCION AS TIPO_EMPRESA_DESCRIPCION,
+                        p.CIP_PUESTO_DESCRIPCION
+                    FROM 
+                        RHEPQ.CIP_PUESTO p
+                        JOIN RHEPQ.CIP_EMPRESAS e ON p.CIP_EMP_CODIGO = e.CIP_EMP_CODIGO
+                        JOIN RHEPQ.CIP_TIPO_EMPRESA t ON p.CIP_TIP_CODIGO = t.CIP_TIP_CODIGO
+            WHERE p.CIP_PUESTO_CODIGO = pCipPuestoCodigo
+              AND p.CIP_EMP_CODIGO = pCipEmpCodigo
+              AND p.CIP_TIP_CODIGO = pCipTipCodigo;
+             
+    ELSIF pOpcion = 5 THEN -- Paginación
+        SELECT COUNT(*) INTO vContador
+	    FROM RHEPQ.CIP_PUESTO p
+	    LEFT JOIN RHEPQ.CIP_EMPRESAS e ON p.CIP_EMP_CODIGO = e.CIP_EMP_CODIGO AND P.CIP_TIP_CODIGO = E.CIP_TIP_CODIGO
+	    LEFT JOIN RHEPQ.CIP_TIPO_EMPRESA t ON p.CIP_TIP_CODIGO = t.CIP_TIP_CODIGO
+	    WHERE (pCipPuestoDescripcion IS NULL
+	           OR pCipPuestoDescripcion = ''
+	           OR LOWER(p.CIP_PUESTO_DESCRIPCION) LIKE '%' || LOWER(TRIM(pCipPuestoDescripcion)) || '%');
+	
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+	
+	    -- Abrir el cursor para obtener los resultados paginados y filtrados
+	    OPEN pCursor FOR
+	        SELECT * FROM (
+	            SELECT a.*, ROWNUM rnum
+	            FROM (
+	                SELECT DISTINCT
+	                    p.CIP_PUESTO_CODIGO,
+	                    p.CIP_EMP_CODIGO,
+	                    e.CIP_EMP_NOMBRE AS EMPRESA_NOMBRE,
+	                    p.CIP_TIP_CODIGO,
+	                    t.CIP_TIP_DESCRIPCION AS TIPO_EMPRESA_DESCRIPCION,
+	                    p.CIP_PUESTO_DESCRIPCION
+	                FROM 
+	                    RHEPQ.CIP_PUESTO p
+	                    LEFT JOIN RHEPQ.CIP_EMPRESAS e ON p.CIP_EMP_CODIGO = e.CIP_EMP_CODIGO AND P.CIP_TIP_CODIGO = E.CIP_TIP_CODIGO
+	                    LEFT JOIN RHEPQ.CIP_TIPO_EMPRESA t ON p.CIP_TIP_CODIGO = t.CIP_TIP_CODIGO
+	                WHERE (pCipPuestoDescripcion IS NULL
+	                       OR pCipPuestoDescripcion = ''
+	                       OR LOWER(p.CIP_PUESTO_DESCRIPCION) LIKE '%' || LOWER(TRIM(pCipPuestoDescripcion)) || '%')
+	                ORDER BY p.CIP_PUESTO_CODIGO, p.CIP_EMP_CODIGO, p.CIP_TIP_CODIGO
+	            ) a
+	            WHERE ROWNUM <= pPageNumber * pPageSize -- Límite superior para la paginación
+	        )
+	        WHERE rnum > (pPageNumber - 1) * pPageSize;
+           
+    ELSIF pOpcion = 6 THEN -- Lista simple
+        OPEN pCursor FOR
+            SELECT
+                CIP_PUESTO_CODIGO AS value,
+                CIP_PUESTO_DESCRIPCION AS label
+            FROM RHEPQ.CIP_PUESTO;
+    END IF;
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK TO transact;
+            RAISE;
+    END SP_CIP_PUESTO;
+
+------------------------------------------------
+
+   --// Empresas
+
+    CREATE OR REPLACE PROCEDURE RHEPQ.SP_CIP_EMPRESAS (
+    pOpcion IN NUMBER,
+    pCipEmpCodigo IN OUT NUMBER,
+    pCipTipCodigo IN NUMBER,
+    pCipEmpNombre IN VARCHAR2,
+    pCipEmpSiglas IN VARCHAR2,
+    pCipEmpContacto IN VARCHAR2,
+    pCipEmpPueContacto IN VARCHAR2,
+    pCipEmpDireccion IN VARCHAR2,
+    pCipEmpTelefono IN VARCHAR2,
+    pCipEmpEmail IN VARCHAR2,
+    pCipEmpObservaciones IN VARCHAR2,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+    SAVEPOINT transact;
+    IF pOpcion = 1 THEN -- Inserción
+        INSERT INTO RHEPQ.CIP_EMPRESAS (
+            CIP_EMP_CODIGO,
+            CIP_TIP_CODIGO,
+            CIP_EMP_NOMBRE,
+            CIP_EMP_SIGLAS,
+            CIP_EMP_CONTACTO,
+            CIP_EMP_PUE_CONTACTO,
+            CIP_EMP_DIRECCION,
+            CIP_EMP_TELEFONO,
+            CIP_EMP_EMAIL,
+            CIP_EMP_OBSERVACIONES
+        ) VALUES (
+            pCipEmpCodigo,
+            pCipTipCodigo,
+            pCipEmpNombre,
+            pCipEmpSiglas,
+            pCipEmpContacto,
+            pCipEmpPueContacto,
+            pCipEmpDireccion,
+            pCipEmpTelefono,
+            pCipEmpEmail,
+            pCipEmpObservaciones
+        )
+        RETURNING CIP_EMP_CODIGO INTO pCipEmpCodigo;
+       
+    ELSIF pOpcion = 2 THEN -- Actualización
+        UPDATE RHEPQ.CIP_EMPRESAS SET
+            CIP_EMP_NOMBRE = pCipEmpNombre,
+            CIP_EMP_SIGLAS = pCipEmpSiglas,
+            CIP_EMP_CONTACTO = pCipEmpContacto,
+            CIP_EMP_PUE_CONTACTO = pCipEmpPueContacto,
+            CIP_EMP_DIRECCION = pCipEmpDireccion,
+            CIP_EMP_TELEFONO = pCipEmpTelefono,
+            CIP_EMP_EMAIL = pCipEmpEmail,
+            CIP_EMP_OBSERVACIONES = pCipEmpObservaciones
+        WHERE CIP_EMP_CODIGO = pCipEmpCodigo AND CIP_TIP_CODIGO = pCipTipCodigo;
+       
+   COMMIT;
+  
+   END IF; -- Cierra el primer bloque IF  
+   
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT
+                e.CIP_EMP_CODIGO,
+                e.CIP_TIP_CODIGO,
+                t.CIP_TIP_DESCRIPCION,
+                e.CIP_EMP_NOMBRE,
+                e.CIP_EMP_SIGLAS,
+                e.CIP_EMP_CONTACTO,
+                e.CIP_EMP_PUE_CONTACTO,
+                e.CIP_EMP_DIRECCION,
+                e.CIP_EMP_TELEFONO,
+                e.CIP_EMP_EMAIL,
+                e.CIP_EMP_OBSERVACIONES
+            FROM RHEPQ.CIP_EMPRESAS e
+            JOIN RHEPQ.CIP_TIPO_EMPRESA t ON e.CIP_TIP_CODIGO = t.CIP_TIP_CODIGO
+            WHERE e.CIP_EMP_CODIGO = pCipEmpCodigo AND e.CIP_TIP_CODIGO = pCipTipCodigo;
+           
+    ELSIF pOpcion = 5 THEN -- Paginación
+            SELECT COUNT(*) INTO vContador
+		    FROM RHEPQ.CIP_EMPRESAS e
+		    JOIN RHEPQ.CIP_TIPO_EMPRESA t ON e.CIP_TIP_CODIGO = t.CIP_TIP_CODIGO
+		    WHERE (pCipEmpNombre IS NULL
+		           OR pCipEmpNombre = ''
+		           OR LOWER(e.CIP_EMP_NOMBRE) LIKE '%' || LOWER(TRIM(pCipEmpNombre)) || '%');
+		
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+		
+		    -- Abrir el cursor para obtener los resultados paginados y filtrados
+		    OPEN pCursor FOR
+		        SELECT * FROM (
+		            SELECT a.*, ROWNUM rnum
+		            FROM (
+		                SELECT
+		                    e.CIP_EMP_CODIGO,
+		                    e.CIP_TIP_CODIGO,
+		                    t.CIP_TIP_DESCRIPCION,
+		                    e.CIP_EMP_NOMBRE,
+		                    e.CIP_EMP_SIGLAS,
+		                    e.CIP_EMP_CONTACTO,
+		                    e.CIP_EMP_PUE_CONTACTO,
+		                    e.CIP_EMP_DIRECCION,
+		                    e.CIP_EMP_TELEFONO,
+		                    e.CIP_EMP_EMAIL,
+		                    e.CIP_EMP_OBSERVACIONES
+		                FROM RHEPQ.CIP_EMPRESAS e
+		                JOIN RHEPQ.CIP_TIPO_EMPRESA t ON e.CIP_TIP_CODIGO = t.CIP_TIP_CODIGO
+		                WHERE (pCipEmpNombre IS NULL
+		                       OR pCipEmpNombre = ''
+		                       OR LOWER(e.CIP_EMP_NOMBRE) LIKE '%' || LOWER(TRIM(pCipEmpNombre)) || '%')
+		                ORDER BY e.CIP_EMP_CODIGO, e.CIP_TIP_CODIGO
+		            ) a
+		            WHERE ROWNUM <= pPageNumber * pPageSize -- Límite superior para la paginación
+		        )
+		        WHERE rnum > (pPageNumber - 1) * pPageSize;
+           
+    ELSIF pOpcion = 6 THEN -- Lista simple
+        OPEN pCursor FOR
+            SELECT
+                CIP_EMP_CODIGO AS value,
+                CIP_EMP_NOMBRE AS label
+            FROM RHEPQ.CIP_EMPRESAS;
+           
+    END IF;
+   
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK TO transact;
+            RAISE;
+    END SP_CIP_EMPRESAS;
+
+------------------------------------------------
+
+   --// Persona que Autoriza
+    
+------------------------------------------------
+
+   --// Personas
+
+--- ############ SUBMODULO DE MANTENIMIENTOS
+
+------------------------------------------------
+
+   --// Datos Gafetes
+
+------------------------------------------------
+
+   --// Detalle de Personas
+
+------------------------------------------------
+
+   --// Autorizaciones
+
+------------------------------------------------
+
+   --// Marbetes
+
+------------------------------------------------
+
+   --// Ingreso de Vehiculos
+
+------------------------------------------------
+
+   --// Impresion Gafetes
+
+-----------------------------------------------------------
+
+--######################## AQUI TERMINA MODULO DE PERSONAL AJENO ########################
+
+
+--######################## MODULO ADMINISTRACION DE SALARIOS ########################
+
+--- ############ SUBMODULO DE MANTENIMIENTOS
+
+
+SELECT ROWID,TDC_CODCIA,TDC_CODIGO,TDC_DESCRIPCION,TDC_CTA_CONTABLE,TDC_CTA_CONTABLE2,TDC_CTA_CONTABLE3,TDC_CTA_PPTO1,TDC_PRIORIDAD,TDC_PRIORIDAD_REPORTE,TDC_NOMBRECORTO,TDC_AFP,TDC_RENTA,TDC_SALARIO_PROM FROM PLA_TDC_TIPO_DESCUENTO WHERE (TDC_CODCIA=:1) and (fasdfas)
+ 
+   --// Tablas ISR
+
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_ISR_ISR(
+    pOpcion IN NUMBER,
+    pIsrDesde IN OUT NUMBER,
+    pIsrHasta IN NUMBER DEFAULT NULL,
+    pIsrValor IN NUMBER DEFAULT NULL,
+    pIsrPct IN NUMBER DEFAULT NULL,
+    pIsrExcedente IN NUMBER DEFAULT NULL,
+    pIsrTipo IN VARCHAR2 DEFAULT NULL,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+
+    SAVEPOINT transact;
+
+    -- Inserción o actualización basada en pOpcion
+    IF pOpcion = 1 THEN
+        INSERT INTO PLA_ISR_ISR (
+            ISR_DESDE,
+            ISR_HASTA,
+            ISR_VALOR,
+            ISR_PCT,
+            ISR_EXCEDENTE,
+            ISR_TIPO
+        ) VALUES (
+            pIsrDesde,
+            pIsrHasta,
+            pIsrValor,
+            pIsrPct,
+            pIsrExcedente,
+            pIsrTipo
+        )
+        RETURNING ISR_DESDE INTO pIsrDesde;
+
+    ELSIF pOpcion = 2 THEN
+        UPDATE PLA_ISR_ISR SET
+            ISR_HASTA = pIsrHasta,
+            ISR_VALOR = pIsrValor,
+            ISR_PCT = pIsrPct,
+            ISR_EXCEDENTE = pIsrExcedente
+        WHERE ISR_DESDE = pIsrDesde AND ISR_TIPO = pIsrTipo;
+    
+       COMMIT;
+       
+       END IF;
+
+    -- Lógica general para opciones 1, 2, 3, 4
+	IF pOpcion IN (1, 2, 3, 4) THEN
+	    OPEN pCursor FOR
+	        SELECT
+	            ISR_DESDE,
+	            ISR_HASTA,
+	            ISR_VALOR,
+	            ISR_PCT,
+	            ISR_EXCEDENTE,
+	            ISR_TIPO
+	        FROM PLA_ISR_ISR
+	        WHERE ISR_DESDE = pIsrDesde AND ISR_TIPO = pIsrTipo;
+           
+    -- Filtrado específico para la opción 5
+    ELSIF pOpcion = 5 THEN
+        SELECT COUNT(*) INTO vContador
+        FROM PLA_ISR_ISR
+        WHERE 
+        (
+            pIsrTipo IS NULL
+            OR pIsrTipo = ''
+            OR LOWER(ISR_TIPO) LIKE '%' || LOWER(TRIM(pIsrTipo)) || '%'
+        );
+        
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+        
+        OPEN pCursor FOR
+            SELECT * FROM (
+                SELECT a.*, ROWNUM rnum
+                FROM (
+                    SELECT 
+                        ISR_DESDE,
+                        ISR_HASTA,
+                        ISR_VALOR,
+                        ISR_PCT,
+                        ISR_EXCEDENTE,
+                        ISR_TIPO
+                    FROM PLA_ISR_ISR
+                    WHERE 
+                    (
+                        pIsrTipo IS NULL
+                        OR pIsrTipo = ''
+                        OR LOWER(ISR_TIPO) LIKE '%' || LOWER(TRIM(pIsrTipo)) || '%'
+                    )
+                    ORDER BY ISR_DESDE, ISR_TIPO
+                ) a
+                WHERE ROWNUM <= pPageNumber * pPageSize
+            )
+            WHERE rnum > (pPageNumber - 1) * pPageSize;
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PLA_ISR_ISR;
+
+    --// Tablas Seguro Social
+
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_PSS_ISSS(
+    pOpcion IN NUMBER,
+    pPssDesde IN OUT NUMBER,
+    pPssHasta IN NUMBER DEFAULT NULL,
+    pPssValor IN NUMBER DEFAULT NULL,
+    pPssPct IN NUMBER DEFAULT NULL,
+    pPssExcedente IN NUMBER DEFAULT NULL,
+    pPssValorP IN NUMBER DEFAULT NULL,
+    pPssPctP IN NUMBER DEFAULT NULL,
+    pPssExcedenteP IN NUMBER DEFAULT NULL,
+    pPssTipo IN VARCHAR2 DEFAULT NULL,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+
+    SAVEPOINT transact;
+
+    -- Inserción o actualización basada en pOpcion
+    IF pOpcion = 1 THEN
+        INSERT INTO PLA_PSS_ISSS (
+            PSS_DESDE,
+            PSS_HASTA,
+            PSS_VALOR,
+            PSS_PCT,
+            PSS_EXCEDENTE,
+            PSS_VALOR_P,
+            PSS_PCT_P,
+            PSS_EXCEDENTE_P,
+            PSS_TIPO
+        ) VALUES (
+            pPssDesde,
+            pPssHasta,
+            pPssValor,
+            pPssPct,
+            pPssExcedente,
+            pPssValorP,
+            pPssPctP,
+            pPssExcedenteP,
+            pPssTipo
+        )
+        RETURNING PSS_DESDE INTO pPssDesde;
+
+    ELSIF pOpcion = 2 THEN
+        UPDATE PLA_PSS_ISSS SET
+            PSS_HASTA = pPssHasta,
+            PSS_VALOR = pPssValor,
+            PSS_PCT = pPssPct,
+            PSS_EXCEDENTE = pPssExcedente,
+            PSS_VALOR_P = pPssValorP,
+            PSS_PCT_P = pPssPctP,
+            PSS_EXCEDENTE_P = pPssExcedenteP
+        WHERE PSS_DESDE = pPssDesde AND PSS_TIPO = pPssTipo;
+    
+   COMMIT;
+       
+    END IF;
+
+    -- Lógica general para opciones 1, 2, 3, 4
+	IF pOpcion IN (1, 2, 3, 4) THEN
+	    OPEN pCursor FOR
+	        SELECT
+	            PSS_DESDE,
+	            PSS_HASTA,
+	            PSS_VALOR,
+	            PSS_PCT,
+	            PSS_EXCEDENTE,
+	            PSS_VALOR_P,
+	            PSS_PCT_P,
+	            PSS_EXCEDENTE_P,
+	            PSS_TIPO
+	        FROM PLA_PSS_ISSS
+	        WHERE PSS_DESDE = pPssDesde AND PSS_TIPO = pPssTipo;
+
+    -- Filtrado específico para la opción 5
+    ELSIF pOpcion = 5 THEN
+        SELECT COUNT(*) INTO vContador
+        FROM PLA_PSS_ISSS
+        WHERE 
+        (
+            pPssTipo IS NULL
+            OR pPssTipo = ''
+            OR LOWER(PSS_TIPO) LIKE '%' || LOWER(TRIM(pPssTipo)) || '%'
+        );
+        
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+        
+        OPEN pCursor FOR
+            SELECT * FROM (
+                SELECT a.*, ROWNUM rnum
+                FROM (
+                    SELECT 
+                        PSS_DESDE,
+                        PSS_HASTA,
+                        PSS_VALOR,
+                        PSS_PCT,
+                        PSS_EXCEDENTE,
+                        PSS_VALOR_P,
+                        PSS_PCT_P,
+                        PSS_EXCEDENTE_P,
+                        PSS_TIPO
+                    FROM PLA_PSS_ISSS
+                    WHERE 
+                    (
+                        pPssTipo IS NULL
+                        OR pPssTipo = ''
+                        OR LOWER(PSS_TIPO) LIKE '%' || LOWER(TRIM(pPssTipo)) || '%'
+                    )
+                    ORDER BY PSS_DESDE, PSS_TIPO
+                ) a
+                WHERE ROWNUM <= pPageNumber * pPageSize
+            )
+            WHERE rnum > (pPageNumber - 1) * pPageSize;
+           
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PLA_PSS_ISSS;
+
+    --// Tablas Montepio
+
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_MON_MONTEPIO(
+    pOpcion IN NUMBER,
+    pMonCodCia IN VARCHAR2 DEFAULT NULL,
+    pMonValorDel IN NUMBER DEFAULT NULL,
+    pMonValorAl IN NUMBER DEFAULT NULL,
+    pMonPorcentaje IN NUMBER DEFAULT NULL,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+
+    SAVEPOINT transact;
+
+    IF pOpcion = 1 THEN
+        INSERT INTO PLA_MON_MONTEPIO (
+            MON_CODCIA,
+            MON_VALOR_DEL,
+            MON_VALOR_AL,
+            MON_PORCENTAJE
+        ) VALUES (
+            pMonCodCia,
+            pMonValorDel,
+            pMonValorAl,
+            pMonPorcentaje
+        );
+
+    ELSIF pOpcion = 2 THEN
+        UPDATE PLA_MON_MONTEPIO SET
+            MON_PORCENTAJE = pMonPorcentaje
+        WHERE MON_CODCIA = pMonCodCia AND MON_VALOR_DEL = pMonValorDel AND MON_VALOR_AL = pMonValorAl;
+
+    COMMIT;
+
+    END IF;
+
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT
+                MON_CODCIA,
+                MON_VALOR_DEL,
+                MON_VALOR_AL,
+                MON_PORCENTAJE
+            FROM PLA_MON_MONTEPIO
+            WHERE MON_CODCIA = pMonCodCia AND MON_VALOR_DEL = pMonValorDel AND MON_VALOR_AL = pMonValorAl;
+
+    ELSIF pOpcion = 5 THEN
+        SELECT COUNT(*) INTO vContador
+        FROM PLA_MON_MONTEPIO;
+        
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+        
+        -- Abrir el cursor para obtener los resultados
+        OPEN pCursor FOR
+            SELECT * FROM (
+                SELECT a.*, ROWNUM rnum
+                FROM (
+                    SELECT 
+                        MON_CODCIA,
+                        MON_VALOR_DEL,
+                        MON_VALOR_AL,
+                        MON_PORCENTAJE
+                    FROM PLA_MON_MONTEPIO
+                    ORDER BY MON_CODCIA, MON_VALOR_DEL, MON_VALOR_AL
+                ) a
+                WHERE ROWNUM <= pPageNumber * pPageSize
+            )
+            WHERE rnum > (pPageNumber - 1) * pPageSize;
 
     END IF;
 
@@ -11445,12 +12861,98 @@ EXCEPTION
     WHEN OTHERS THEN
         ROLLBACK TO transact;
         RAISE;
-END SP_PLA_TDC_TIPO_DESCUENTO;
+END SP_PLA_MON_MONTEPIO;
 
-----------------------------------------
+    --// Tabla descuentos AFP
+   
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_AFP_AFPS(
+    pOpcion IN NUMBER,
+    pAfpCodigo IN OUT VARCHAR2,
+    pAfpEmpleado IN NUMBER DEFAULT NULL,
+    pAfpPatrono IN NUMBER DEFAULT NULL,
+    pAfpComision IN NUMBER DEFAULT NULL,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+    SAVEPOINT transact;
 
--- ##### TIPOS DE JORNADAS DE TRABAJO:
+    IF pOpcion = 1 THEN
+        INSERT INTO PLA_AFP_AFPS (
+            AFP_CODIGO,
+            AFP_EMPLEADO,
+            AFP_PATRONO,
+            AFP_COMISION
+        ) VALUES (
+            pAfpCodigo,
+            pAfpEmpleado,
+            pAfpPatrono,
+            pAfpComision
+        )
+       	RETURNING AFP_CODIGO INTO pAfpCodigo;
 
+    ELSIF pOpcion = 2 THEN
+        UPDATE PLA_AFP_AFPS SET
+            AFP_EMPLEADO = pAfpEmpleado,
+            AFP_PATRONO = pAfpPatrono,
+            AFP_COMISION = pAfpComision
+        WHERE AFP_CODIGO = pAfpCodigo;
+
+    COMMIT;
+
+    END IF;
+
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT
+                AFP_CODIGO,
+                AFP_EMPLEADO,
+                ISYSEPQ.GETNOMBRECOMPLETOEMPLEADO(AFP_EMPLEADO) AS NOMBRE_EMPLEADO,
+                AFP_PATRONO,
+                AFP_COMISION
+            FROM PLA_AFP_AFPS
+            WHERE AFP_CODIGO = pAfpCodigo;
+
+    ELSIF pOpcion = 5 THEN
+        SELECT COUNT(*) INTO vContador
+        FROM PLA_AFP_AFPS;
+        
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+        
+        -- Abrir el cursor para obtener los resultados
+        OPEN pCursor FOR
+            SELECT * FROM (
+                SELECT a.*, ROWNUM rnum
+                FROM (
+                    SELECT 
+                        AFP_CODIGO,
+                        AFP_EMPLEADO,
+                        ISYSEPQ.GETNOMBRECOMPLETOEMPLEADO(AFP_EMPLEADO) AS NOMBRE_EMPLEADO,
+                        AFP_PATRONO,
+                        AFP_COMISION
+                    FROM PLA_AFP_AFPS
+                    ORDER BY AFP_CODIGO
+                ) a
+                WHERE ROWNUM <= pPageNumber * pPageSize
+            )
+            WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PLA_AFP_AFPS;
+
+    --// Jornadas de Trabajo
+    
 CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_JOR_JORNADA(
     pOpcion IN NUMBER,
     pJorCodCia IN OUT VARCHAR2,
@@ -11559,24 +13061,53 @@ BEGIN
             FROM PLA_JOR_JORNADA
             WHERE JOR_CODCIA = pJorCodCia AND JOR_CODIGO = pJorCodigo;
 
-    ELSIF pOpcion = 5 THEN
-        SELECT COUNT(*) INTO vContador FROM PLA_JOR_JORNADA;
-        pTotalPage := CEIL(vContador / pPageSize);
-
-        OPEN pCursor FOR
-            SELECT * FROM (
-                SELECT a.*, ROWNUM rnum
-                FROM (
-                    SELECT 
-                    	ROWID AS id,
-                        JOR_CODCIA,
-                        JOR_CODIGO
-                    FROM PLA_JOR_JORNADA 
-                    ORDER BY JOR_CODCIA, JOR_CODIGO
-                ) a
-                WHERE ROWNUM <= pPageNumber * pPageSize
-            )
-            WHERE rnum > (pPageNumber - 1) * pPageSize;
+	ELSIF pOpcion = 5 THEN
+	    SELECT COUNT(*) INTO vContador
+	    FROM PLA_JOR_JORNADA
+	    WHERE 
+	    (
+	        pJorNombre IS NULL
+	        OR pJorNombre = ''
+	        OR LOWER(JOR_NOMBRE) LIKE '%' || LOWER(TRIM(pJorNombre)) || '%'
+	    );
+	    
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+	
+	    OPEN pCursor FOR
+	        SELECT * FROM (
+	            SELECT a.*, ROWNUM rnum
+	            FROM (
+	                SELECT 
+	                    ROWID AS id,
+	                    JOR_CODCIA,
+		                JOR_CODIGO,
+		                JOR_HORA_DEL,
+		                JOR_HORA_AL,
+		                JOR_HORA_DEL_S,
+		                JOR_HORA_AL_S,
+		                JOR_DESCRIPCION,
+		                JOR_VALOR_BONO,
+		                JOR_HORARIO,
+		                JOR_HORAS,
+		                JOR_HORAS_S,
+		                JOR_ALMUERZO,
+		                JOR_NUMHORA_ANTERIOR,
+		                JOR_NUMHORA_POSTERIOR,
+		                JOR_NOMBRE
+	                FROM PLA_JOR_JORNADA 
+	                WHERE 
+	                (
+	                    pJorNombre IS NULL
+	                    OR pJorNombre = ''
+	                    OR LOWER(JOR_NOMBRE) LIKE '%' || LOWER(TRIM(pJorNombre)) || '%'
+	                )
+	                ORDER BY JOR_CODCIA, JOR_CODIGO
+	            ) a
+	            WHERE ROWNUM <= pPageNumber * pPageSize
+	        )
+	        WHERE rnum > (pPageNumber - 1) * pPageSize;
 
     ELSIF pOpcion = 6 THEN
         OPEN pCursor FOR
@@ -11592,11 +13123,346 @@ EXCEPTION
         RAISE;
 END SP_PLA_JOR_JORNADA;
 
-----------------------------------------
+--  detalle
 
--- ##### TIPOS DE INGRESOS:
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_DET_JORNADA(
+    pOpcion IN NUMBER,
+    pDetCodCia IN VARCHAR2,
+    pDetCodJor IN VARCHAR2,
+    pDetTurno IN NUMBER,
+    pDetDescripcionTurno IN VARCHAR2 DEFAULT NULL,
+    pDetHoraDel IN DATE DEFAULT NULL,
+    pDetHoraAl IN DATE DEFAULT NULL,
+    pDetHoraDelSimple IN DATE DEFAULT NULL,
+    pDetHoraAlSimple IN DATE DEFAULT NULL,
+    pDetTipoHextraSimple IN NUMBER DEFAULT NULL,
+    pDetHoraDelDoble IN DATE DEFAULT NULL,
+    pDetHoraAlDoble IN DATE DEFAULT NULL,
+    pDetTipoHextraDoble IN NUMBER DEFAULT NULL,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
 
-CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_TIG_TIPO_INGRESO(
+    SAVEPOINT transact;
+
+    IF pOpcion = 1 THEN
+        INSERT INTO PLA_DET_JORNADA (
+            DET_CODCIA,
+            DET_CODJOR,
+            DET_TURNO,
+            DET_DESCRIPCION_TURNO,
+            DET_HORA_DEL,
+            DET_HORA_AL,
+            DET_HORA_DEL_SIMPLE,
+            DET_HORA_AL_SIMPLE,
+            DET_TIPO_HEXTRA_SIMPLE,
+            DET_HORA_DEL_DOBLE,
+            DET_HORA_AL_DOBLE,
+            DET_TIPO_HEXTRA_DOBLE
+        ) VALUES (
+            pDetCodCia,
+            pDetCodJor,
+            pDetTurno,
+            pDetDescripcionTurno,
+            pDetHoraDel,
+            pDetHoraAl,
+            pDetHoraDelSimple,
+            pDetHoraAlSimple,
+            pDetTipoHextraSimple,
+            pDetHoraDelDoble,
+            pDetHoraAlDoble,
+            pDetTipoHextraDoble
+        );
+
+    ELSIF pOpcion = 2 THEN
+        UPDATE PLA_DET_JORNADA SET
+            DET_DESCRIPCION_TURNO = pDetDescripcionTurno,
+            DET_HORA_DEL = pDetHoraDel,
+            DET_HORA_AL = pDetHoraAl,
+            DET_HORA_DEL_SIMPLE = pDetHoraDelSimple,
+            DET_HORA_AL_SIMPLE = pDetHoraAlSimple,
+            DET_TIPO_HEXTRA_SIMPLE = pDetTipoHextraSimple,
+            DET_HORA_DEL_DOBLE = pDetHoraDelDoble,
+            DET_HORA_AL_DOBLE = pDetHoraAlDoble,
+            DET_TIPO_HEXTRA_DOBLE = pDetTipoHextraDoble
+        WHERE DET_CODCIA = pDetCodCia AND DET_CODJOR = pDetCodJor AND DET_TURNO = pDetTurno;
+
+    COMMIT;
+
+    END IF;
+
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT
+                DET_CODCIA,
+                DET_CODJOR,
+                DET_TURNO,
+                DET_DESCRIPCION_TURNO,
+                DET_HORA_DEL,
+                DET_HORA_AL,
+                DET_HORA_DEL_SIMPLE,
+                DET_HORA_AL_SIMPLE,
+                DET_TIPO_HEXTRA_SIMPLE,
+                DET_HORA_DEL_DOBLE,
+                DET_HORA_AL_DOBLE,
+                DET_TIPO_HEXTRA_DOBLE
+            FROM PLA_DET_JORNADA
+            WHERE DET_CODCIA = pDetCodCia AND DET_CODJOR = pDetCodJor AND DET_TURNO = pDetTurno;
+
+	ELSIF pOpcion = 5 THEN
+	    SELECT COUNT(*) INTO vContador
+	    FROM PLA_DET_JORNADA DET
+	    INNER JOIN RHEPQ.PLA_JOR_JORNADA JOR ON JOR.JOR_CODIGO = DET.DET_CODJOR AND JOR.JOR_CODCIA = DET.DET_CODCIA
+	    WHERE DET_CODCIA = pDetCodCia AND
+	    (
+	        pDetDescripcionTurno IS NULL
+	        OR pDetDescripcionTurno = ''
+	        OR LOWER(DET.DET_DESCRIPCION_TURNO) LIKE '%' || LOWER(TRIM(pDetDescripcionTurno)) || '%'
+	    )
+	    AND DET.DET_CODJOR = pDetCodJor;
+	
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+	    
+	    -- Abrir el cursor para obtener los resultados con paginación
+	    OPEN pCursor FOR
+	        SELECT * FROM (
+	            SELECT a.*, ROWNUM rnum
+	            FROM (
+	                 SELECT 
+	                    JOR.JOR_CODIGO,
+	                    DET.DET_CODCIA,
+	                    DET.DET_CODJOR,
+	                    DET.DET_TURNO,
+	                    DET.DET_DESCRIPCION_TURNO,
+	                    DET.DET_HORA_DEL,
+	                    DET.DET_HORA_AL,
+	                    DET.DET_HORA_DEL_SIMPLE,
+	                    DET.DET_HORA_AL_SIMPLE,
+	                    DET.DET_TIPO_HEXTRA_SIMPLE,
+	                    DET.DET_HORA_DEL_DOBLE,
+	                    DET.DET_HORA_AL_DOBLE,
+	                    DET.DET_TIPO_HEXTRA_DOBLE
+	                FROM PLA_DET_JORNADA DET
+	                INNER JOIN RHEPQ.PLA_JOR_JORNADA JOR ON JOR.JOR_CODIGO = DET.DET_CODJOR AND JOR.JOR_CODCIA = DET.DET_CODCIA
+	                WHERE DET_CODCIA = pDetCodCia AND
+	                (
+	                    pDetDescripcionTurno IS NULL
+	                    OR pDetDescripcionTurno = ''
+	                    OR LOWER(DET.DET_DESCRIPCION_TURNO) LIKE '%' || LOWER(TRIM(pDetDescripcionTurno)) || '%'
+	                )
+	                AND DET.DET_CODJOR = pDetCodJor
+	                ORDER BY DET.DET_CODCIA, DET.DET_CODJOR, DET.DET_TURNO
+	            ) a
+	            WHERE ROWNUM <= pPageNumber * pPageSize
+	        )
+	        WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PLA_DET_JORNADA;
+
+    --// Tipos de descuentos
+
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_TDC_TIPO_DESCUENTO(
+    pOpcion IN NUMBER,
+    pTdcCodcia IN VARCHAR2,
+    pTdcCodigo IN OUT VARCHAR2,
+    pTdcDescripcion IN VARCHAR2 DEFAULT NULL,
+    pTdcCtaContable IN VARCHAR2 DEFAULT NULL,
+    pTdcNombreCorto IN VARCHAR2 DEFAULT NULL,
+    pTdcPrioridad IN NUMBER DEFAULT NULL,
+    pTdcRenta IN VARCHAR2 DEFAULT NULL,
+    pTdcAfp IN VARCHAR2 DEFAULT NULL,
+    pTdcSalarioProm IN VARCHAR2 DEFAULT NULL,
+    pTdcContableCat IN VARCHAR2 DEFAULT NULL,
+    pTdcPrioridadReporte IN NUMBER DEFAULT NULL,
+    pTdcCtaPpto1 IN VARCHAR2 DEFAULT NULL,
+    pTdcCtaPpto2 IN VARCHAR2 DEFAULT NULL,
+    pTdcCtaContable2 IN VARCHAR2 DEFAULT NULL,
+    pTdcContableCat2 IN VARCHAR2 DEFAULT NULL,
+    pTdcCtaContable3 IN VARCHAR2 DEFAULT NULL,
+    pTdcContableCat3 IN VARCHAR2 DEFAULT NULL,
+    pEstado IN NUMBER DEFAULT 1,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+    
+    SAVEPOINT transact;
+
+    IF pOpcion = 1 THEN
+        INSERT INTO PLA_TDC_TIPO_DESCUENTO (
+            TDC_CODCIA,
+            TDC_CODIGO,
+            TDC_DESCRIPCION,
+            TDC_CTA_CONTABLE,
+            TDC_NOMBRECORTO,
+            TDC_PRIORIDAD,
+            TDC_RENTA,
+            TDC_AFP,
+            TDC_SALARIO_PROM,
+            TDC_CONTABLE_CAT,
+            TDC_PRIORIDAD_REPORTE,
+            TDC_CTA_PPTO1,
+            TDC_CTA_PPTO2,
+            TDC_CTA_CONTABLE2,
+            TDC_CONTABLE_CAT2,
+            TDC_CTA_CONTABLE3,
+            TDC_CONTABLE_CAT3
+        ) VALUES (
+            pTdcCodcia,
+            pTdcCodigo,
+            pTdcDescripcion,
+            pTdcCtaContable,
+            pTdcNombreCorto,
+            pTdcPrioridad,
+            pTdcRenta,
+            pTdcAfp,
+            pTdcSalarioProm,
+            pTdcContableCat,
+            pTdcPrioridadReporte,
+            pTdcCtaPpto1,
+            pTdcCtaPpto2,
+            pTdcCtaContable2,
+            pTdcContableCat2,
+            pTdcCtaContable3,
+            pTdcContableCat3
+        )
+        RETURNING TDC_CODIGO INTO pTdcCodigo;
+
+    ELSIF pOpcion = 2 THEN
+        UPDATE PLA_TDC_TIPO_DESCUENTO SET
+            TDC_DESCRIPCION = pTdcDescripcion,
+            TDC_CTA_CONTABLE = pTdcCtaContable,
+            TDC_NOMBRECORTO = pTdcNombreCorto,
+            TDC_PRIORIDAD = pTdcPrioridad,
+            TDC_RENTA = pTdcRenta,
+            TDC_AFP = pTdcAfp,
+            TDC_SALARIO_PROM = pTdcSalarioProm,
+            TDC_CONTABLE_CAT = pTdcContableCat,
+            TDC_PRIORIDAD_REPORTE = pTdcPrioridadReporte,
+            TDC_CTA_PPTO1 = pTdcCtaPpto1,
+            TDC_CTA_PPTO2 = pTdcCtaPpto2,
+            TDC_CTA_CONTABLE2 = pTdcCtaContable2,
+            TDC_CONTABLE_CAT2 = pTdcContableCat2,
+            TDC_CTA_CONTABLE3 = pTdcCtaContable3,
+            TDC_CONTABLE_CAT3 = pTdcContableCat3
+        WHERE TDC_CODCIA = pTdcCodcia AND TDC_CODIGO = pTdcCodigo;
+
+    COMMIT;
+
+    END IF;
+
+    -- Validación para opciones 1, 2, 3, 4
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT
+                TDC_CODCIA,
+                TDC_CODIGO,
+                TDC_DESCRIPCION,
+                TDC_CTA_CONTABLE,
+                TDC_NOMBRECORTO,
+                TDC_PRIORIDAD,
+                TDC_RENTA,
+                TDC_AFP,
+                TDC_SALARIO_PROM,
+                TDC_CONTABLE_CAT,
+                TDC_PRIORIDAD_REPORTE,
+                TDC_CTA_PPTO1,
+                TDC_CTA_PPTO2,
+                TDC_CTA_CONTABLE2,
+                TDC_CONTABLE_CAT2,
+                TDC_CTA_CONTABLE3,
+                TDC_CONTABLE_CAT3
+            FROM PLA_TDC_TIPO_DESCUENTO
+            WHERE TDC_CODCIA = pTdcCodcia AND TDC_CODIGO = pTdcCodigo;
+    
+    -- Opción 5 para buscar por descripción con paginación
+ELSIF pOpcion = 5 THEN
+    SELECT COUNT(*) INTO vContador
+    FROM PLA_TDC_TIPO_DESCUENTO
+    WHERE TDC_CODCIA = pTdcCodcia AND 
+    (
+        pTdcDescripcion IS NULL
+        OR pTdcDescripcion = ''
+        OR LOWER(TDC_DESCRIPCION) LIKE '%' || LOWER(TRIM(pTdcDescripcion)) || '%'
+    );
+    
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+    
+    -- Abrir el cursor para obtener los resultados con paginación
+    OPEN pCursor FOR
+        SELECT * FROM (
+            SELECT a.*, ROWNUM rnum
+            FROM (
+                SELECT 
+                    TDC_CODCIA,
+                    TDC_CODIGO,
+                    TDC_DESCRIPCION,
+                    TDC_CTA_CONTABLE,
+                    TDC_NOMBRECORTO,
+                    TDC_PRIORIDAD,
+                    TDC_RENTA,
+                    TDC_AFP,
+                    TDC_SALARIO_PROM,
+                    TDC_CONTABLE_CAT,
+                    TDC_PRIORIDAD_REPORTE,
+                    TDC_CTA_PPTO1,
+                    TDC_CTA_PPTO2,
+                    TDC_CTA_CONTABLE2,
+                    TDC_CONTABLE_CAT2,
+                    TDC_CTA_CONTABLE3,
+                    TDC_CONTABLE_CAT3
+                FROM PLA_TDC_TIPO_DESCUENTO
+                WHERE TDC_CODCIA = pTdcCodcia AND
+                (
+                    pTdcDescripcion IS NULL
+                    OR pTdcDescripcion = ''
+                    OR LOWER(TDC_DESCRIPCION) LIKE '%' || LOWER(TRIM(pTdcDescripcion)) || '%'
+                )
+                ORDER BY TDC_CODIGO
+            ) a
+            WHERE ROWNUM <= pPageNumber * pPageSize
+        )
+        WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+    
+    -- Opción 6 para listar todos los tipos de descuento
+    ELSIF pOpcion = 6 THEN
+        OPEN pCursor FOR
+            SELECT
+                TDC_CODIGO AS value, 
+                TDC_DESCRIPCION AS label
+            FROM PLA_TDC_TIPO_DESCUENTO;
+
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PLA_TDC_TIPO_DESCUENTO;
+
+    --// Tipos de Ingresos
+    
+    CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_TIG_TIPO_INGRESO(
     pOpcion IN NUMBER,
     pTigCodCia IN OUT VARCHAR2,
     pTigCodigo IN OUT VARCHAR2,
@@ -11676,43 +13542,111 @@ BEGIN
         )
         RETURNING TIG_CODCIA, TIG_CODIGO INTO pTigCodCia, pTigCodigo;
 
-    ELSIF pOpcion = 2 THEN
-        UPDATE PLA_TIG_TIPO_INGRESO SET
-            TIG_DESCRIPCION = pTigDescripcion,
-            TIG_CTA_CONTABLE = pTigCtaContable
-        WHERE TIG_CODCIA = pTigCodCia AND TIG_CODIGO = pTigCodigo;
-    END IF; -- Cierra el primer bloque IF
-
-    COMMIT;
+	ELSIF pOpcion = 2 THEN
+	    UPDATE PLA_TIG_TIPO_INGRESO SET
+	        TIG_DESCRIPCION = pTigDescripcion,
+	        TIG_CTA_CONTABLE = pTigCtaContable,
+	        TIG_NOMBRECORTO = pTigNombreCorto,
+	        TIG_ISSS = pTigIsss,
+	        TIG_RENTA = pTigRenta,
+	        TIG_AFP = pTigAfp,
+	        TIG_INPEP = pTigInpep,
+	        TIG_CONTABLE_CAT = pTigContableCat,
+	        TIG_SALARIO_PROM = pTigSalarioProm,
+	        TIG_FONDO_VAC = pTigFondoVac,
+	        TIG_ATCONSA = pTigAtconsa,
+	        TIG_CTA_PPTO1 = pTigCtaPpto1,
+	        TIG_CTA_PPTO2 = pTigCtaPpto2,
+	        TIG_CTA_CONTABLE2 = pTigCtaContable2,
+	        TIG_CONTABLE_CAT2 = pTigContableCat2,
+	        TIG_DEVENGADO = pTigDevengado,
+	        TIG_CODSIAF = pTigCodsiaf,
+	        TIG_DESCRIP_PRESUP = pTigDescripPresup
+	    WHERE TIG_CODCIA = pTigCodCia AND TIG_CODIGO = pTigCodigo;
+	   
+   COMMIT;
+	   
+    END IF;    
 
     -- Lógica adicional para otras opciones
     IF pOpcion IN (1, 2, 3, 4) THEN
         OPEN pCursor FOR
-            SELECT 
-                TIG_CODCIA,
-                TIG_CODIGO,
-                TIG_DESCRIPCION
-            FROM PLA_TIG_TIPO_INGRESO
-            WHERE TIG_CODCIA = pTigCodCia AND TIG_CODIGO = pTigCodigo;
+	        SELECT 
+	            TIG_CODCIA,
+	            TIG_CODIGO,
+	            TIG_DESCRIPCION,
+	            TIG_CTA_CONTABLE,
+	            TIG_NOMBRECORTO,
+	            TIG_ISSS,
+	            TIG_RENTA,
+	            TIG_AFP,
+	            TIG_INPEP,
+	            TIG_CONTABLE_CAT,
+	            TIG_SALARIO_PROM,
+	            TIG_FONDO_VAC,
+	            TIG_ATCONSA,
+	            TIG_CTA_PPTO1,
+	            TIG_CTA_PPTO2,
+	            TIG_CTA_CONTABLE2,
+	            TIG_CONTABLE_CAT2,
+	            TIG_DEVENGADO,
+	            TIG_CODSIAF,
+	            TIG_DESCRIP_PRESUP
+	        FROM PLA_TIG_TIPO_INGRESO
+	        WHERE TIG_CODCIA = pTigCodCia AND TIG_CODIGO = pTigCodigo;
 
-    ELSIF pOpcion = 5 THEN
-        SELECT COUNT(*) INTO vContador FROM PLA_TIG_TIPO_INGRESO;
-        pTotalPage := CEIL(vContador / pPageSize);
-
-        OPEN pCursor FOR
-            SELECT * FROM (
-                SELECT a.*, ROWNUM rnum
-                FROM (
-                    SELECT 
-                        ROWID AS id,
-                        TIG_CODCIA,
-                        TIG_CODIGO
-                    FROM PLA_TIG_TIPO_INGRESO 
-                    ORDER BY TIG_CODCIA, TIG_CODIGO
-                ) a
-                WHERE ROWNUM <= pPageNumber * pPageSize
-            )
-            WHERE rnum > (pPageNumber - 1) * pPageSize;
+	ELSIF pOpcion = 5 THEN
+	    SELECT COUNT(*) INTO vContador
+	    FROM PLA_TIG_TIPO_INGRESO
+	    WHERE TIG_CODCIA = pTigCodCia AND 
+	    (
+	        pTigDescripcion IS NULL
+	        OR pTigDescripcion = ''
+	        OR LOWER(TIG_DESCRIPCION) LIKE '%' || LOWER(TRIM(pTigDescripcion)) || '%'
+	    );
+	    
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+	
+	    -- Abrir el cursor para obtener los resultados con paginación
+	    OPEN pCursor FOR
+	        SELECT * FROM (
+	            SELECT temp.*, ROWNUM rnum
+	            FROM (
+	                SELECT 
+	                    TIG_CODCIA,
+	                    TIG_CODIGO,
+	                    TIG_DESCRIPCION,
+	                    TIG_CTA_CONTABLE,
+	                    TIG_NOMBRECORTO,
+	                    TIG_ISSS,
+	                    TIG_RENTA,
+	                    TIG_AFP,
+	                    TIG_INPEP,
+	                    TIG_CONTABLE_CAT,
+	                    TIG_SALARIO_PROM,
+	                    TIG_FONDO_VAC,
+	                    TIG_ATCONSA,
+	                    TIG_CTA_PPTO1,
+	                    TIG_CTA_PPTO2,
+	                    TIG_CTA_CONTABLE2,
+	                    TIG_CONTABLE_CAT2,
+	                    TIG_DEVENGADO,
+	                    TIG_CODSIAF,
+	                    TIG_DESCRIP_PRESUP
+	                FROM PLA_TIG_TIPO_INGRESO
+	                WHERE TIG_CODCIA = pTigCodCia AND 
+	                (
+	                    pTigDescripcion IS NULL
+	                    OR pTigDescripcion = ''
+	                    OR LOWER(TIG_DESCRIPCION) LIKE '%' || LOWER(TRIM(pTigDescripcion)) || '%'
+	                )
+	                ORDER BY TIG_CODCIA, TIG_CODIGO
+	            ) temp
+	            WHERE ROWNUM <= pPageNumber * pPageSize
+	        )
+	        WHERE rnum > (pPageNumber - 1) * pPageSize;
 
     ELSIF pOpcion = 6 THEN
         -- Ajustar esta lógica según la necesidad
@@ -11729,6 +13663,689 @@ EXCEPTION
         RAISE;
 END SP_PLA_TIG_TIPO_INGRESO;
 
+    --// Movimientos
+
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_MOV_MOVIMIENTO(
+    pOpcion IN NUMBER,
+    pMovCodCia IN OUT VARCHAR2,
+    pMovCodigo IN OUT NUMBER,
+    pMovTipo IN VARCHAR2 DEFAULT NULL,
+    pMovAccion IN VARCHAR2 DEFAULT NULL,
+    pMovDescrip IN VARCHAR2 DEFAULT NULL,
+    pEstado IN NUMBER DEFAULT 1,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+	
+    SAVEPOINT transact;
+
+    IF pOpcion = 1 THEN
+        INSERT INTO PLA_MOV_MOVIMIENTO (
+            MOV_CODCIA,
+            MOV_CODIGO,
+            MOV_TIPO,
+            MOV_ACCION,
+            MOV_DESCRIP
+        ) VALUES (
+            pMovCodCia,
+            pMovCodigo,
+            pMovTipo,
+            pMovAccion,
+            pMovDescrip
+        )
+        RETURNING MOV_CODIGO INTO pMovCodigo;
+
+    ELSIF pOpcion = 2 THEN
+        UPDATE PLA_MOV_MOVIMIENTO SET
+            MOV_TIPO = pMovTipo,
+            MOV_ACCION = pMovAccion,
+            MOV_DESCRIP = pMovDescrip
+        WHERE MOV_CODCIA = pMovCodCia AND MOV_CODIGO = pMovCodigo;
+
+    COMMIT;
+   
+   END IF;
+
+    -- Lógica adicional para otras opciones
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT 
+                MOV_CODCIA,
+                MOV_CODIGO,
+                MOV_TIPO,
+                MOV_ACCION,
+                MOV_DESCRIP
+            FROM PLA_MOV_MOVIMIENTO
+            WHERE MOV_CODCIA = pMovCodCia AND MOV_CODIGO = pMovCodigo;
+
+    ELSIF pOpcion = 5 THEN
+        SELECT COUNT(*) INTO vContador
+        FROM PLA_MOV_MOVIMIENTO
+        WHERE MOV_CODCIA = pMovCodCia AND
+        (
+            pMovDescrip IS NULL
+            OR pMovDescrip = ''
+            OR LOWER(MOV_DESCRIP) LIKE '%' || LOWER(TRIM(pMovDescrip)) || '%'
+        );
+
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+
+        -- Abrir el cursor para obtener los resultados con paginación
+        OPEN pCursor FOR
+            SELECT * FROM (
+                SELECT a.*, ROWNUM rnum
+                FROM (
+                    SELECT 
+                        MOV_CODCIA,
+                        MOV_CODIGO,
+                        MOV_TIPO,
+                        MOV_ACCION,
+                        MOV_DESCRIP
+                    FROM PLA_MOV_MOVIMIENTO
+                    WHERE MOV_CODCIA = pMovCodCia AND
+                    (
+                        pMovDescrip IS NULL
+                        OR pMovDescrip = ''
+                        OR LOWER(MOV_DESCRIP) LIKE '%' || LOWER(TRIM(pMovDescrip)) || '%'
+                    )
+                    ORDER BY MOV_CODCIA, MOV_CODIGO
+                ) a
+                WHERE ROWNUM <= pPageNumber * pPageSize
+            )
+            WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+    ELSIF pOpcion = 6 THEN
+    	 OPEN pCursor FOR
+	          SELECT         
+		        MOV_CODIGO,
+		        MOV_DESCRIP
+		    FROM PLA_MOV_MOVIMIENTO
+		    WHERE MOV_CODCIA = pMovCodCia;
+
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PLA_MOV_MOVIMIENTO;
+
+    --// Tipos de Horas Extras
+
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_THE_TIPOHORAEX(
+    pOpcion IN NUMBER,
+    pTheCodCia IN OUT VARCHAR2,
+    pTheCodigo IN OUT NUMBER,
+    pTheTipoDia IN VARCHAR2 DEFAULT NULL,
+    pTheHoraInicial IN DATE DEFAULT NULL,
+    pTheHoraFinal IN DATE DEFAULT NULL,
+    pTheNombre IN VARCHAR2 DEFAULT NULL,
+    pTheValor IN NUMBER DEFAULT NULL,
+    pTheValorExtra IN NUMBER DEFAULT NULL,
+    pTheNocturnidad IN NUMBER DEFAULT NULL,
+    pTheCodTig IN VARCHAR2 DEFAULT NULL,
+    pTheCoeficiente IN NUMBER DEFAULT NULL,
+    pEstado IN NUMBER DEFAULT 1,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+	
+    SAVEPOINT transact;
+
+    IF pOpcion = 1 THEN
+        INSERT INTO PLA_THE_TIPOHORAEX (
+            THE_CODCIA,
+            THE_CODIGO,
+            THE_TIPO_DIA,
+            THE_HORA_INICIAL,
+            THE_HORA_FINAL,
+            THE_NOMBRE,
+            THE_VALOR,
+            THE_VALOR_EXTRA,
+            THE_NOCTURNIDAD,
+            THE_CODTIG,
+            THE_COEFICIENTE
+        ) VALUES (
+            pTheCodCia,
+            pTheCodigo,
+            pTheTipoDia,
+            pTheHoraInicial,
+            pTheHoraFinal,
+            pTheNombre,
+            pTheValor,
+            pTheValorExtra,
+            pTheNocturnidad,
+            pTheCodTig,
+            pTheCoeficiente
+        )
+        RETURNING THE_CODIGO INTO pTheCodigo;
+
+    ELSIF pOpcion = 2 THEN
+        UPDATE PLA_THE_TIPOHORAEX SET
+            THE_TIPO_DIA = pTheTipoDia,
+            THE_HORA_INICIAL = pTheHoraInicial,
+            THE_HORA_FINAL = pTheHoraFinal,
+            THE_NOMBRE = pTheNombre,
+            THE_VALOR = pTheValor,
+            THE_VALOR_EXTRA = pTheValorExtra,
+            THE_NOCTURNIDAD = pTheNocturnidad,
+            THE_CODTIG = pTheCodTig,
+            THE_COEFICIENTE = pTheCoeficiente
+        WHERE THE_CODCIA = pTheCodCia AND THE_CODIGO = pTheCodigo;
+
+    COMMIT;
+   
+   END IF;
+
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT 
+                THE_CODCIA,
+                THE_CODIGO,
+                THE_TIPO_DIA,
+                THE_HORA_INICIAL,
+                THE_HORA_FINAL,
+                THE_NOMBRE,
+                THE_VALOR,
+                THE_VALOR_EXTRA,
+                THE_NOCTURNIDAD,
+                THE_CODTIG,
+                THE_COEFICIENTE
+            FROM PLA_THE_TIPOHORAEX
+            WHERE THE_CODCIA = pTheCodCia AND THE_CODIGO = pTheCodigo;
+
+	ELSIF pOpcion = 5 THEN
+	    SELECT COUNT(*) INTO vContador
+	    FROM PLA_THE_TIPOHORAEX
+	    WHERE THE_CODCIA = pTheCodCia AND
+	    (
+	        THE_NOMBRE IS NULL
+	        OR THE_NOMBRE = ''
+	        OR LOWER(THE_NOMBRE) LIKE '%' || LOWER(TRIM(pTheNombre)) || '%'
+	    );
+	
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+	
+	    OPEN pCursor FOR
+	        SELECT * FROM (
+	            SELECT a.*, ROWNUM rnum
+	            FROM (
+	                SELECT 
+	                    THE_CODCIA,
+	                    THE_CODIGO,
+	                    THE_TIPO_DIA,
+	                    THE_HORA_INICIAL,
+	                    THE_HORA_FINAL,
+	                    THE_NOMBRE,
+	                    THE_VALOR,
+	                    THE_VALOR_EXTRA,
+	                    THE_NOCTURNIDAD,
+	                    THE_CODTIG,
+	                    THE_COEFICIENTE
+	                FROM PLA_THE_TIPOHORAEX
+	                WHERE THE_CODCIA = pTheCodCia AND
+	                (
+	                    THE_NOMBRE IS NULL
+	                    OR THE_NOMBRE = ''
+	                    OR LOWER(THE_NOMBRE) LIKE '%' || LOWER(TRIM(pTheNombre)) || '%'
+	                )
+	                ORDER BY THE_CODCIA, THE_CODIGO
+	            ) a
+	            WHERE ROWNUM <= pPageNumber * pPageSize
+	        )
+	        WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+	ELSIF pOpcion = 6 THEN
+	    OPEN pCursor FOR
+	        SELECT 
+	            THE_CODIGO AS value, 
+	            THE_NOMBRE AS label
+	        FROM PLA_THE_TIPOHORAEX
+	        WHERE THE_CODCIA = pTheCodCia
+	        ORDER BY THE_CODIGO;
+	       
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PLA_THE_TIPOHORAEX;
+
+    --// Tipos de Tiempo
+
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_TNT_TPO_TIEMPO(
+    pOpcion IN NUMBER,    
+    pTntCodigo IN OUT VARCHAR2,
+    pTntCodCia IN VARCHAR2,
+    pTntDescripcion IN VARCHAR2 DEFAULT NULL,
+    pTntGoceSueldo IN VARCHAR2 DEFAULT NULL,
+    pTntCodTdc IN VARCHAR2 DEFAULT NULL,
+    pTntPctDescuento IN NUMBER DEFAULT NULL,
+    pTntPagoEnfermedad IN VARCHAR2 DEFAULT NULL,
+    pTntDiasLey IN NUMBER DEFAULT NULL,
+    pEstado IN NUMBER DEFAULT 1,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+   vUsername VARCHAR2(255);
+BEGIN
+	
+    SAVEPOINT transact;
+
+    -- Lógica para insertar o actualizar un registro en base a pOpcion
+    IF pOpcion = 1 THEN
+    
+    	vUsername := obtenerUsername(pUsuario);
+    
+        INSERT INTO PLA_TNT_TPO_TIEMPO (
+            TNT_CODCIA,
+            TNT_CODIGO,
+            TNT_DESCRIPCION,
+            TNT_GOCE_SUELDO,
+            TNT_CODTDC,
+            TNT_PCT_DESCUENTO,
+            TNT_PAGO_ENFERMEDAD,
+            TNT_DIAS_LEY,
+            CREADO_POR
+        ) VALUES (
+            pTntCodCia,
+            pTntCodigo,
+            pTntDescripcion,
+            pTntGoceSueldo,
+            pTntCodTdc,
+            pTntPctDescuento,
+            pTntPagoEnfermedad,
+            pTntDiasLey,
+            vUsername
+        )
+        RETURNING TNT_CODIGO INTO pTntCodigo;
+
+    ELSIF pOpcion = 2 THEN
+        UPDATE PLA_TNT_TPO_TIEMPO SET
+            TNT_DESCRIPCION = pTntDescripcion,
+            TNT_GOCE_SUELDO = pTntGoceSueldo,
+            TNT_CODTDC = pTntCodTdc,
+            TNT_PCT_DESCUENTO = pTntPctDescuento,
+            TNT_PAGO_ENFERMEDAD = pTntPagoEnfermedad,
+            TNT_DIAS_LEY = pTntDiasLey
+        WHERE TNT_CODCIA = pTntCodCia AND TNT_CODIGO = pTntCodigo;
+
+    COMMIT;
+   
+   END IF;
+
+    -- Lógica para devolver información de un registro específico
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+			  SELECT         
+				TNT_CODCIA,
+				TNT_CODIGO,
+				TNT_DESCRIPCION,
+				TNT_GOCE_SUELDO,
+				TNT_CODTDC,
+				TDC.TDC_NOMBRECORTO,
+				TDC.TDC_DESCRIPCION,
+				TNT_PCT_DESCUENTO,
+				TNT_PAGO_ENFERMEDAD,
+				TNT_DIAS_LEY
+			FROM PLA_TNT_TPO_TIEMPO TNT
+			LEFT JOIN RHEPQ.PLA_TDC_TIPO_DESCUENTO TDC ON TDC.TDC_CODIGO = TNT.TNT_CODTDC AND TDC.TDC_CODCIA = TNT.TNT_CODCIA 
+            WHERE TNT.TNT_CODCIA = pTntCodCia AND TNT.TNT_CODIGO = pTntCodigo;
+
+    -- Búsqueda con TNT_DESCRIPCION y paginación
+    ELSIF pOpcion = 5 THEN
+        SELECT COUNT(*) INTO vContador
+        FROM PLA_TNT_TPO_TIEMPO TNT
+		LEFT JOIN RHEPQ.PLA_TDC_TIPO_DESCUENTO TDC ON TDC.TDC_CODIGO = TNT.TNT_CODTDC AND TDC.TDC_CODCIA = TNT.TNT_CODCIA
+        WHERE TNT_CODCIA = pTntCodCia AND
+        (
+            pTntDescripcion IS NULL
+            OR pTntDescripcion = ''
+            OR LOWER(TNT.TNT_DESCRIPCION) LIKE '%' || LOWER(TRIM(pTntDescripcion)) || '%'
+        );
+
+		-- Asignar la cantidad total de páginas
+       
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+		
+
+        OPEN pCursor FOR
+            SELECT * FROM (
+                SELECT a.*, ROWNUM rnum
+                FROM (
+        			  SELECT         
+						TNT_CODCIA,
+						TNT_CODIGO,
+						TNT_DESCRIPCION,
+						TNT_GOCE_SUELDO,
+						TNT_CODTDC,
+						TDC.TDC_NOMBRECORTO,
+						TDC.TDC_DESCRIPCION,
+						TNT_PCT_DESCUENTO,
+						TNT_PAGO_ENFERMEDAD,
+						TNT_DIAS_LEY
+					FROM PLA_TNT_TPO_TIEMPO TNT
+					LEFT JOIN RHEPQ.PLA_TDC_TIPO_DESCUENTO TDC ON TDC.TDC_CODIGO = TNT.TNT_CODTDC AND TDC.TDC_CODCIA = TNT.TNT_CODCIA 
+                    WHERE TNT_CODCIA = pTntCodCia AND
+                    (
+                        pTntDescripcion IS NULL
+                        OR pTntDescripcion = ''
+                        OR LOWER(TNT.TNT_DESCRIPCION) LIKE '%' || LOWER(TRIM(pTntDescripcion)) || '%'
+                    )
+                    ORDER BY TNT.TNT_CODCIA, TNT.TNT_CODIGO
+                ) a
+                WHERE ROWNUM <= pPageNumber * pPageSize
+            )
+            WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+    -- Opción 6: Devuelve un listado de registros como valor y etiqueta
+    ELSIF pOpcion = 6 THEN
+        OPEN pCursor FOR
+            SELECT TNT_CODIGO AS value, TNT_DESCRIPCION AS label
+            FROM PLA_TNT_TPO_TIEMPO
+            WHERE TNT_CODTDC = pTntCodTdc AND TNT_CODCIA = pTntCodCia 
+            ORDER BY TNT_CODCIA, TNT_CODIGO;
+
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PLA_TNT_TPO_TIEMPO;
+
+ALTER TABLE RHEPQ.PLA_TNT_TPO_TIEMPO ADD (CREADO_POR VARCHAR2(150));
+
+CREATE OR REPLACE TRIGGER "RHEPQ"."T_DI_HR_TPO_TIEMPO" AFTER INSERT ON "RHEPQ"."PLA_TNT_TPO_TIEMPO" REFERENCING OLD AS OLD NEW AS NEW FOR EACH ROW 
+begin
+  sp_hr_tnt_tpo_tiempo(:new.tnt_codcia, :new.tnt_codigo,:new.tnt_descripcion,
+  :new.tnt_goce_sueldo,:new.tnt_codtdc,:new.tnt_pct_descuento,
+  :new.tnt_pago_enfermedad,:new.tnt_dias_ley,SYSDATE,'I', :new.CREADO_POR, :new.CREADO_POR);
+
+CREATE OR REPLACE PROCEDURE RHEPQ."SP_HR_TNT_TPO_TIEMPO"   (tnt_codcia in varchar2,
+  tnt_codigo in integer,
+  tnt_descripcion in varchar2,
+  tnt_goce_sueldo in varchar2,
+  tnt_codtdc in varchar2,
+  tnt_pct_descuento in number, 
+  tnt_pago_enfermedad in varchar2,
+  tnt_dias_ley in integer,
+  tnt_fechaalta in date,
+  tnt_statusbita in varchar2,
+  tnt_maquina in varchar2,
+  tnt_usuario in varchar2 
+  )
+  
+is 
+
+maquinas varchar2(30);
+
+begin 
+
+--select machine
+--into maquinas
+--from v$session
+--where audsid=userenv('sessionid');
+
+ INSERT INTO rhepq.bb_pla_tnt_tpo_tiempo VALUES
+( tnt_codcia,
+  tnt_codigo,
+  tnt_descripcion,
+  tnt_goce_sueldo,
+  tnt_codtdc,
+  tnt_pct_descuento,
+  tnt_pago_enfermedad,
+  tnt_dias_ley,
+  tnt_fechaalta,
+  tnt_statusbita,
+  tnt_maquina,
+  tnt_usuario 
+  );
+
+end sp_hr_tnt_tpo_tiempo;
+ 
+    --------------------------------
+    --// Tipos de Prestamos
+
+CREATE OR REPLACE procedure RHEPQ.sp_pla_tpr_tipo_prestamo(
+    pOpcion IN number,
+    pRowId IN OUT VARCHAR2,
+    pTprCodcia IN VARCHAR2,
+    pTprCodigo IN OUT VARCHAR2,
+    pTprDescripcion IN VARCHAR2,
+    pTprCodtdc IN VARCHAR2,
+    pEstado IN NUMBER DEFAULT 1,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+	
+    IF pOpcion IN (1,2,3) THEN
+        SAVEPOINT transact;
+        BEGIN
+            IF pOpcion = 1 THEN
+                INSERT INTO PLA_TPR_TIPO_PRESTAMO (
+                    TPR_CODCIA,
+                    TPR_CODIGO,
+                    TPR_DESCRIPCION,
+                    TPR_CODTDC
+                ) VALUES (
+                    pTprCodcia,
+                    pTprCodigo,
+                    pTprDescripcion,
+                    pTprCodtdc                    
+                )
+                RETURNING TPR_CODIGO INTO pTprCodigo;
+               
+            ELSIF pOpcion = 2 THEN
+                UPDATE PLA_TPR_TIPO_PRESTAMO
+                SET TPR_CODCIA = pTprCodcia,                    
+                    TPR_DESCRIPCION = pTprDescripcion,
+                    TPR_CODTDC = pTprCodtdc
+                WHERE TPR_CODIGO = pTprCodigo AND TPR_CODCIA = pTprCodcia;
+               
+            END IF;
+           
+            COMMIT;
+           
+        EXCEPTION
+            WHEN OTHERS THEN
+                ROLLBACK TO transact;
+                RAISE;
+        END;
+       
+    END IF;
+
+    IF pOpcion IN (1,2,3,4,5,6,7) THEN
+    
+        IF pOpcion IN (1,2,3,4) THEN
+            OPEN pCursor FOR
+            SELECT
+                ROWID as id,
+                TPR_CODCIA,
+                TPR_CODIGO,
+                TPR_DESCRIPCION,
+                TPR_CODTDC
+            FROM PLA_TPR_TIPO_PRESTAMO
+            WHERE TPR_CODIGO = pTprCodigo AND TPR_CODCIA = pTprCodcia;
+           
+	ELSIF pOpcion = 5 THEN
+	    SELECT COUNT(*) INTO vContador
+	    FROM PLA_TPR_TIPO_PRESTAMO
+	    WHERE TPR_CODCIA = pTprCodcia AND
+	    (
+	        pTprDescripcion IS NULL
+	        OR pTprDescripcion = ''
+	        OR LOWER(TPR_DESCRIPCION) LIKE '%' || LOWER(TRIM(pTprDescripcion)) || '%'
+	    );
+	    
+	    -- Asignar la cantidad total de páginas
+	    pTotalPage := vContador;
+	    --pTotalPage := CEIL(vContador / pPageSize);
+	
+	    OPEN pCursor FOR
+	        SELECT * FROM (
+	            SELECT a.*, ROWNUM rnum
+	            FROM (
+	                SELECT
+	                    ROWID as id,
+	                    TPR_CODCIA,
+	                    TPR_CODIGO,
+	                    TPR_DESCRIPCION,
+	                    TPR_CODTDC
+	                FROM PLA_TPR_TIPO_PRESTAMO
+	                WHERE TPR_CODCIA = pTprCodcia AND
+	                (
+	                    pTprDescripcion IS NULL
+	                    OR pTprDescripcion = ''
+	                    OR LOWER(TPR_DESCRIPCION) LIKE '%' || LOWER(TRIM(pTprDescripcion)) || '%'
+	                )
+	                ORDER BY TPR_CODIGO
+	            ) a
+	            WHERE ROWNUM <= pPageNumber * pPageSize
+	        )
+	        WHERE rnum > (pPageNumber - 1) * pPageSize;
+               
+        ELSIF pOpcion = 6 THEN
+            OPEN pCursor FOR
+            SELECT
+                TPR_CODIGO as value,
+                TPR_DESCRIPCION as label
+            FROM PLA_TPR_TIPO_PRESTAMO;
+           
+       ELSIF pOpcion = 7 THEN
+            OPEN pCursor FOR
+            SELECT
+                TPR_CODIGO as value,
+                TPR_DESCRIPCION as label
+            FROM PLA_TPR_TIPO_PRESTAMO
+           WHERE TPR_CODTDC = pTprCodtdc AND TPR_CODCIA = pTprCodcia;
+           
+        END IF;
+       
+    END IF;
+   
+END sp_pla_tpr_tipo_prestamo;
+    
+    --// Intereses para Prestamos
+
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_IPR_INTERES_PRESTAMO(
+    pOpcion IN NUMBER,
+    pIprCodCia IN OUT VARCHAR2,
+    pIprPlazoIni IN OUT NUMBER,
+    pIprPlazoFin IN NUMBER DEFAULT NULL,
+    pIprInteres IN NUMBER DEFAULT NULL,
+    pEstado IN NUMBER DEFAULT 1,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+    
+    SAVEPOINT transact;
+
+    IF pOpcion = 1 THEN
+        INSERT INTO PLA_IPR_INTERES_PRESTAMOS (
+            IPR_CODCIA,
+            IPR_PLAZO_INI,
+            IPR_PLAZO_FIN,
+            IPR_INTERES
+        ) VALUES (
+            pIprCodCia,
+            pIprPlazoIni,
+            pIprPlazoFin,
+            pIprInteres
+        )
+        RETURNING IPR_CODCIA, IPR_PLAZO_INI INTO pIprCodCia, pIprPlazoIni;
+
+    ELSIF pOpcion = 2 THEN
+        UPDATE PLA_IPR_INTERES_PRESTAMOS SET
+            IPR_PLAZO_FIN = pIprPlazoFin,
+            IPR_INTERES = pIprInteres
+        WHERE IPR_CODCIA = pIprCodCia AND IPR_PLAZO_INI = pIprPlazoIni;
+
+    COMMIT;
+   
+   END IF;
+
+    -- Lógica adicional para otras opciones
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT 
+                IPR_CODCIA,
+                IPR_PLAZO_INI,
+                IPR_PLAZO_FIN,
+                IPR_INTERES
+            FROM PLA_IPR_INTERES_PRESTAMOS
+            WHERE IPR_CODCIA = pIprCodCia AND IPR_PLAZO_INI = pIprPlazoIni;
+
+    ELSIF pOpcion = 5 THEN
+        SELECT COUNT(*) INTO vContador
+        FROM PLA_IPR_INTERES_PRESTAMOS;
+
+		-- Asignar la cantidad total de páginas
+		pTotalPage := vContador;
+		--pTotalPage := CEIL(vContador / pPageSize);
+
+        OPEN pCursor FOR
+            SELECT * FROM (
+                SELECT a.*, ROWNUM rnum
+                FROM (
+                    SELECT 
+                        IPR_CODCIA,
+                        IPR_PLAZO_INI,
+                        IPR_PLAZO_FIN,
+                        IPR_INTERES
+                    FROM PLA_IPR_INTERES_PRESTAMOS
+                    ORDER BY IPR_CODCIA, IPR_PLAZO_INI
+                ) a
+                WHERE ROWNUM <= pPageNumber * pPageSize
+            )
+            WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+    ELSIF pOpcion = 6 THEN
+        OPEN pCursor FOR
+            SELECT IPR_PLAZO_INI AS value, TO_CHAR(IPR_INTERES) AS label
+            FROM PLA_IPR_INTERES_PRESTAMOS
+            WHERE IPR_CODCIA = pIprCodCia
+            ORDER BY IPR_CODCIA, IPR_PLAZO_INI;
+
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PLA_IPR_INTERES_PRESTAMO;
+
+----------------------------------------
 
    ---------------------------- ### TABLAS #### -----------------------------------------
 
