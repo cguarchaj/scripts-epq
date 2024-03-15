@@ -14308,7 +14308,7 @@ BEGIN
 
     ELSIF pOpcion = 5 THEN
         SELECT COUNT(*) INTO vContador
-        FROM PLA_IPR_INTERES_PRESTAMOS;
+        FROM PLA_IPR_INTERES_PRESTAMOS WHERE IPR_CODCIA = pIprCodCia;
 
 		-- Asignar la cantidad total de páginas
 		pTotalPage := vContador;
@@ -14324,6 +14324,7 @@ BEGIN
                         IPR_PLAZO_FIN,
                         IPR_INTERES
                     FROM PLA_IPR_INTERES_PRESTAMOS
+                    WHERE IPR_CODCIA = pIprCodCia
                     ORDER BY IPR_CODCIA, IPR_PLAZO_INI
                 ) a
                 WHERE ROWNUM <= pPageNumber * pPageSize
