@@ -14346,7 +14346,779 @@ EXCEPTION
         RAISE;
 END SP_PLA_IPR_INTERES_PRESTAMO;
 
+    -----------------------------------------------------------
+    
+    -- Parametros de salarios
+
+    CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_PGE_PARAMETROS_GEN(
+    pOpcion IN NUMBER,
+    pPgeCodCia IN VARCHAR2,
+    pPgeAnticipos IN NUMBER,
+    pPgeAlimentac IN NUMBER,
+    pPgeDiasIncap IN NUMBER,
+    pPgePctIncap IN NUMBER,
+    pPgePctAguin IN NUMBER,
+    pPgePctBonif IN NUMBER,
+    pPgeSegumedEmp IN NUMBER,
+    pPgeSegumenFam IN NUMBER,
+    pPgeSindicato IN NUMBER,
+    pPgeCuotasAnt IN NUMBER,
+    pPgeEntradaAdm IN NUMBER,
+    pPgeSalidaAdm IN NUMBER,
+    pPgeEntradaPlt IN NUMBER,
+    pPgeSalidaPlt IN NUMBER,
+    pPgePctHorasVac IN NUMBER,
+    pPgePctSeguroVida IN NUMBER,
+    pPgeSalariosSv IN NUMBER,
+    pPgeFechaIniSv IN DATE,
+    pPgeFechaFinSv IN DATE,
+    pPgeSalVidaMax IN NUMBER,
+    pPgeSalVidaMin IN NUMBER,
+    pPgePorcSindicatoStepq IN NUMBER,
+    pPgePorcSindicatoUnido IN NUMBER,
+    pPgeFactorUtilidades IN NUMBER,
+    pPgeBonoEscolarHijos IN NUMBER,
+    pPgeCuotaAcep IN NUMBER,
+    pPgePorcBonoVacacional IN NUMBER,
+    pPgeCuotaBonoVacacional IN NUMBER,
+    pPgeFactorVentajas IN NUMBER,
+    pPgeFactorBono14 IN NUMBER,
+    pPgeFactorAguinaldo IN NUMBER,
+    pPgeSubsidioFam IN NUMBER,
+    pPgeBonoEscEmpPrimaria IN NUMBER,
+    pPgeBonoEscEmpEduMedia IN NUMBER,
+    pPgeBonoEscEmpUniversi IN NUMBER,
+    pPgePorcPlanJubilacion IN NUMBER,
+    pPgePorc42495 IN NUMBER,
+    pPgeSindicatoUnido IN NUMBER,
+    pPgeMontoBecha IN NUMBER,
+    pPgePorcenIsrJuntadir IN NUMBER,
+    pPgePorcenTimJuntadir IN NUMBER,
+    pPgeValorSesion IN NUMBER,
+    pPgeMaxHrsTomaduria IN NUMBER,
+    pPgeAccesoTomaduria IN VARCHAR2,
+    pPgeGtoRepPdteJunta IN NUMBER,
+    pPgeGtoRepGteGral IN NUMBER,
+    pPgeGtoRepSubgteGral IN NUMBER,
+    pPgeSindiSutra IN NUMBER,
+    pPgeSindStupepqpz IN NUMBER,
+    pPgeSindOstracompq IN NUMBER,
+	pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+BEGIN
+	
+    SAVEPOINT transact;
+   
+   IF pOpcion = 1 THEN
+	    INSERT INTO RHEPQ.PLA_PGE_PARAMETROS_GEN (
+	        PGE_CODCIA,
+	        PGE_ANTICIPOS,
+	        PGE_ALIMENTAC,
+	        PGE_DIAS_INCAP,
+	        PGE_PCT_INCAP,
+	        PGE_PCT_AGUIN,
+	        PGE_PCT_BONIF,
+	        PGE_SEGUMED_EMP,
+	        PGE_SEGUMEN_FAM,
+	        PGE_SINDICATO,
+	        PGE_CUOTAS_ANT,
+	        PGE_ENTRADA_ADM,
+	        PGE_SALIDA_ADM,
+	        PGE_ENTRADA_PLT,
+	        PGE_SALIDA_PLT,
+	        PGE_PCT_HORAS_VAC,
+	        PGE_PCT_SEGURO_VIDA,
+	        PGE_SALARIOS_SV,
+	        PGE_FECHA_INI_SV,
+	        PGE_FECHA_FIN_SV,
+	        PGE_SAL_VIDA_MAX,
+	        PGE_SAL_VIDA_MIN,
+	        PGE_PORC_SINDICATO_STEPQ,
+	        PGE_PORC_SINDICATO_UNIDO,
+	        PGE_FACTOR_UTILIDADES,
+	        PGE_BONO_ESCOLAR_HIJOS,
+	        PGE_CUOTA_ACEP,
+	        PGE_PORC_BONO_VACACIONAL,
+	        PGE_CUOTA_BONO_VACACIONAL,
+	        PGE_FACTOR_VENTAJAS,
+	        PGE_FACTOR_BONO14,
+	        PGE_FACTOR_AGUINALDO,
+	        PGE_SUBSIDIO_FAM,
+	        PGE_BONO_ESC_EMP_PRIMARIA,
+	        PGE_BONO_ESC_EMP_EDUMEDIA,
+	        PGE_BONO_ESC_EMP_UNIVERSI,
+	        PGE_PORC_PLAN_JUBILACION,
+	        PGE_PORC_42495,
+	        PGE_SINDICATO_UNIDO,
+	        PGE_MONTO_BECHA,
+	        PGE_PORCEN_ISR_JUNTADIR,
+	        PGE_PORCEN_TIM_JUNTADIR,
+	        PGE_VALOR_SESION,
+	        PGE_MAX_HRS_TOMADURIA,
+	        PGE_ACCESO_TOMADURIA,
+	        PGE_GTO_REP_PDTE_JUNTA,
+	        PGE_GTO_REP_GTE_GRAL,
+	        PGE_GTO_REP_SUBGTE_GRAL,
+	        PGE_SINDI_SUTRA,
+	        PGE_SIND_STUPEPQPZ,
+	        PGE_SIND_OSTRACOMPQ
+	    ) VALUES (
+	        pPgeCodCia,
+	        pPgeAnticipos,
+	        pPgeAlimentac,
+	        pPgeDiasIncap,
+	        pPgePctIncap,
+	        pPgePctAguin,
+	        pPgePctBonif,
+	        pPgeSegumedEmp,
+	        pPgeSegumenFam,
+	        pPgeSindicato,
+	        pPgeCuotasAnt,
+	        pPgeEntradaAdm,
+	        pPgeSalidaAdm,
+	        pPgeEntradaPlt,
+	        pPgeSalidaPlt,
+	        pPgePctHorasVac,
+	        pPgePctSeguroVida,
+	        pPgeSalariosSv,
+	        pPgeFechaIniSv,
+	        pPgeFechaFinSv,
+	        pPgeSalVidaMax,
+	        pPgeSalVidaMin,
+	        pPgePorcSindicatoStepq,
+	        pPgePorcSindicatoUnido,
+	        pPgeFactorUtilidades,
+	        pPgeBonoEscolarHijos,
+	        pPgeCuotaAcep,
+	        pPgePorcBonoVacacional,
+	        pPgeCuotaBonoVacacional,
+	        pPgeFactorVentajas,
+	        pPgeFactorBono14,
+	        pPgeFactorAguinaldo,
+	        pPgeSubsidioFam,
+	        pPgeBonoEscEmpPrimaria,
+	        pPgeBonoEscEmpEduMedia,
+	        pPgeBonoEscEmpUniversi,
+	        pPgePorcPlanJubilacion,
+	        pPgePorc42495,
+	        pPgeSindicatoUnido,
+	        pPgeMontoBecha,
+	        pPgePorcenIsrJuntadir,
+	        pPgePorcenTimJuntadir,
+	        pPgeValorSesion,
+	        pPgeMaxHrsTomaduria,
+	        pPgeAccesoTomaduria,
+	        pPgeGtoRepPdteJunta,
+	        pPgeGtoRepGteGral,
+	        pPgeGtoRepSubgteGral,
+	        pPgeSindiSutra,
+	        pPgeSindStupepqpz,
+	        pPgeSindOstracompq
+	    );	   
+
+    -- Opción de actualización
+    ELSIF pOpcion = 2 THEN
+	    UPDATE RHEPQ.PLA_PGE_PARAMETROS_GEN SET
+	        PGE_ANTICIPOS = pPgeAnticipos,
+	        PGE_ALIMENTAC = pPgeAlimentac,
+	        PGE_DIAS_INCAP = pPgeDiasIncap,
+	        PGE_PCT_INCAP = pPgePctIncap,
+	        PGE_PCT_AGUIN = pPgePctAguin,
+	        PGE_PCT_BONIF = pPgePctBonif,
+	        PGE_SEGUMED_EMP = pPgeSegumedEmp,
+	        PGE_SEGUMEN_FAM = pPgeSegumenFam,
+	        PGE_SINDICATO = pPgeSindicato,
+	        PGE_CUOTAS_ANT = pPgeCuotasAnt,
+	        PGE_ENTRADA_ADM = pPgeEntradaAdm,
+	        PGE_SALIDA_ADM = pPgeSalidaAdm,
+	        PGE_ENTRADA_PLT = pPgeEntradaPlt,
+	        PGE_SALIDA_PLT = pPgeSalidaPlt,
+	        PGE_PCT_HORAS_VAC = pPgePctHorasVac,
+	        PGE_PCT_SEGURO_VIDA = pPgePctSeguroVida,
+	        PGE_SALARIOS_SV = pPgeSalariosSv,
+	        PGE_FECHA_INI_SV = pPgeFechaIniSv,
+	        PGE_FECHA_FIN_SV = pPgeFechaFinSv,
+	        PGE_SAL_VIDA_MAX = pPgeSalVidaMax,
+	        PGE_SAL_VIDA_MIN = pPgeSalVidaMin,
+	        PGE_PORC_SINDICATO_STEPQ = pPgePorcSindicatoStepq,
+	        PGE_PORC_SINDICATO_UNIDO = pPgePorcSindicatoUnido,
+	        PGE_FACTOR_UTILIDADES = pPgeFactorUtilidades,
+	        PGE_BONO_ESCOLAR_HIJOS = pPgeBonoEscolarHijos,
+	        PGE_CUOTA_ACEP = pPgeCuotaAcep,
+	        PGE_PORC_BONO_VACACIONAL = pPgePorcBonoVacacional,
+	        PGE_CUOTA_BONO_VACACIONAL = pPgeCuotaBonoVacacional,
+	        PGE_FACTOR_VENTAJAS = pPgeFactorVentajas,
+	        PGE_FACTOR_BONO14 = pPgeFactorBono14,
+	        PGE_FACTOR_AGUINALDO = pPgeFactorAguinaldo,
+	        PGE_SUBSIDIO_FAM = pPgeSubsidioFam,
+	        PGE_BONO_ESC_EMP_PRIMARIA = pPgeBonoEscEmpPrimaria,
+	        PGE_BONO_ESC_EMP_EDUMEDIA = pPgeBonoEscEmpEduMedia,
+	        PGE_BONO_ESC_EMP_UNIVERSI = pPgeBonoEscEmpUniversi,
+	        PGE_PORC_PLAN_JUBILACION = pPgePorcPlanJubilacion,
+	        PGE_PORC_42495 = pPgePorc42495,
+	        PGE_SINDICATO_UNIDO = pPgeSindicatoUnido,
+	        PGE_MONTO_BECHA = pPgeMontoBecha,
+	        PGE_PORCEN_ISR_JUNTADIR = pPgePorcenIsrJuntadir,
+	        PGE_PORCEN_TIM_JUNTADIR = pPgePorcenTimJuntadir,
+	        PGE_VALOR_SESION = pPgeValorSesion,
+	        PGE_MAX_HRS_TOMADURIA = pPgeMaxHrsTomaduria,
+	        PGE_ACCESO_TOMADURIA = pPgeAccesoTomaduria,
+	        PGE_GTO_REP_PDTE_JUNTA = pPgeGtoRepPdteJunta,
+	        PGE_GTO_REP_GTE_GRAL = pPgeGtoRepGteGral,
+	        PGE_GTO_REP_SUBGTE_GRAL = pPgeGtoRepSubgteGral,
+	        PGE_SINDI_SUTRA = pPgeSindiSutra,
+	        PGE_SIND_STUPEPQPZ = pPgeSindStupepqpz,
+	        PGE_SIND_OSTRACOMPQ = pPgeSindOstracompq
+	    WHERE PGE_CODCIA = pPgeCodCia;
+
+    COMMIT;
+   
+    END IF;
+    
+    IF pOpcion IN (1, 2, 3, 4) THEN
+           OPEN pCursor FOR
+		        SELECT
+		            PGE_CODCIA,
+		            PGE_ANTICIPOS,
+		            PGE_ALIMENTAC,
+		            PGE_DIAS_INCAP,
+		            PGE_PCT_INCAP,
+		            PGE_PCT_AGUIN,
+		            PGE_PCT_BONIF,
+		            PGE_SEGUMED_EMP,
+		            PGE_SEGUMEN_FAM,
+		            PGE_SINDICATO,
+		            PGE_CUOTAS_ANT,
+		            PGE_ENTRADA_ADM,
+		            PGE_SALIDA_ADM,
+		            PGE_ENTRADA_PLT,
+		            PGE_SALIDA_PLT,
+		            PGE_PCT_HORAS_VAC,
+		            PGE_PCT_SEGURO_VIDA,
+		            PGE_SALARIOS_SV,
+		            PGE_FECHA_INI_SV,
+		            PGE_FECHA_FIN_SV,
+		            PGE_SAL_VIDA_MAX,
+		            PGE_SAL_VIDA_MIN,
+		            PGE_PORC_SINDICATO_STEPQ,
+		            PGE_PORC_SINDICATO_UNIDO,
+		            PGE_FACTOR_UTILIDADES,
+		            PGE_BONO_ESCOLAR_HIJOS,
+		            PGE_CUOTA_ACEP,
+		            PGE_PORC_BONO_VACACIONAL,
+		            PGE_CUOTA_BONO_VACACIONAL,
+		            PGE_FACTOR_VENTAJAS,
+		            PGE_FACTOR_BONO14,
+		            PGE_FACTOR_AGUINALDO,
+		            PGE_SUBSIDIO_FAM,
+		            PGE_BONO_ESC_EMP_PRIMARIA,
+		            PGE_BONO_ESC_EMP_EDUMEDIA,
+		            PGE_BONO_ESC_EMP_UNIVERSI,
+		            PGE_PORC_PLAN_JUBILACION,
+		            PGE_PORC_42495,
+		            PGE_SINDICATO_UNIDO,
+		            PGE_MONTO_BECHA,
+		            PGE_PORCEN_ISR_JUNTADIR,
+		            PGE_PORCEN_TIM_JUNTADIR,
+		            PGE_VALOR_SESION,
+		            PGE_MAX_HRS_TOMADURIA,
+		            PGE_ACCESO_TOMADURIA,
+		            PGE_GTO_REP_PDTE_JUNTA,
+		            PGE_GTO_REP_GTE_GRAL,
+		            PGE_GTO_REP_SUBGTE_GRAL,
+		            PGE_SINDI_SUTRA,
+		            PGE_SIND_STUPEPQPZ,
+		            PGE_SIND_OSTRACOMPQ
+		        FROM RHEPQ.PLA_PGE_PARAMETROS_GEN
+		        WHERE PGE_CODCIA = pPgeCodCia;
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PLA_PGE_PARAMETROS_GEN;
+
+    -----------------------------------------------------------
+
+    -- Parametros fondo vacacion
+
+    CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_FDV_FONDO_VACACION(
+    pOpcion IN NUMBER,
+    pFdvCodCia IN VARCHAR2,
+    pFdvTipo IN VARCHAR2,
+    pFdvSalIni IN NUMBER,
+    pFdvSalFin IN NUMBER,
+    pFdvCuotaBase IN NUMBER,
+    pFdvPct IN NUMBER,
+    pFdvExceden IN NUMBER,
+    pFdvCuotaBasePat IN NUMBER,
+    pFdvPctPat IN NUMBER,
+    pFdvExcPat IN NUMBER,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+    SAVEPOINT transact;
+
+    IF pOpcion = 1 THEN
+        INSERT INTO PLA_FDV_FONDO_VACACION (
+            FDV_CODCIA,
+            FDV_TIPO,
+            FDV_SAL_INI,
+            FDV_SAL_FIN,
+            FDV_CUOTA_BASE,
+            FDV_PCT,
+            FDV_EXCEDEN,
+            FDV_CUOTA_BASE_PAT,
+            FDV_PCT_PAT,
+            FDV_EXC_PAT
+        ) VALUES (
+            pFdvCodCia,
+            pFdvTipo,
+            pFdvSalIni,
+            pFdvSalFin,
+            pFdvCuotaBase,
+            pFdvPct,
+            pFdvExceden,
+            pFdvCuotaBasePat,
+            pFdvPctPat,
+            pFdvExcPat
+        );
+
+    ELSIF pOpcion = 2 THEN
+        UPDATE PLA_FDV_FONDO_VACACION SET
+            FDV_SAL_INI = pFdvSalIni,
+            FDV_SAL_FIN = pFdvSalFin,
+            FDV_CUOTA_BASE = pFdvCuotaBase,
+            FDV_PCT = pFdvPct,
+            FDV_EXCEDEN = pFdvExceden,
+            FDV_CUOTA_BASE_PAT = pFdvCuotaBasePat,
+            FDV_PCT_PAT = pFdvPctPat,
+            FDV_EXC_PAT = pFdvExcPat
+        WHERE FDV_CODCIA = pFdvCodCia AND FDV_TIPO = pFdvTipo AND FDV_SAL_INI = pFdvSalIni;
+
+    COMMIT;
+   
+   END IF;
+
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT
+                FDV_CODCIA,
+                FDV_TIPO,
+                FDV_SAL_INI,
+                FDV_SAL_FIN,
+                FDV_CUOTA_BASE,
+                FDV_PCT,
+                FDV_EXCEDEN,
+                FDV_CUOTA_BASE_PAT,
+                FDV_PCT_PAT,
+                FDV_EXC_PAT
+            FROM PLA_FDV_FONDO_VACACION
+            WHERE FDV_CODCIA = pFdvCodCia AND FDV_TIPO = pFdvTipo AND FDV_SAL_INI = pFdvSalIni;
+
+    ELSIF pOpcion = 5 THEN
+        SELECT COUNT(*) INTO vContador FROM PLA_FDV_FONDO_VACACION;
+        pTotalPage := CEIL(vContador / pPageSize);
+        OPEN pCursor FOR
+            SELECT * FROM (
+                SELECT a.*, ROWNUM rnum
+                FROM (
+                    SELECT 
+                        FDV_CODCIA,
+                        FDV_TIPO,
+                        FDV_SAL_INI,
+                        FDV_SAL_FIN,
+                        FDV_CUOTA_BASE,
+                        FDV_PCT,
+                        FDV_EXCEDEN,
+                        FDV_CUOTA_BASE_PAT,
+                        FDV_PCT_PAT,
+                        FDV_EXC_PAT
+                    FROM PLA_FDV_FONDO_VACACION
+                    ORDER BY FDV_CODCIA, FDV_TIPO, FDV_SAL_INI
+                ) a
+                WHERE ROWNUM <= pPageNumber * pPageSize
+            )
+            WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PLA_FDV_FONDO_VACACION;
+
+    -----------------------------------------------------------
+    
+    -- Vacaciones y Aguinaldo
+
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_PVA_PARAM_VACACION(
+    pOpcion IN NUMBER,
+    pPvaCodCia IN VARCHAR2,
+    pPvaTipo IN VARCHAR2,
+    pPvaCodMin IN NUMBER,
+    pPvaCodMax IN NUMBER,
+    pPvaDiasVac IN NUMBER,
+    pPvaDiasCscs IN NUMBER,
+    pPvaPctVac IN NUMBER,
+    pPvaDiasAgu IN NUMBER,
+    pPvaPctAgu IN NUMBER,
+    pPvaDiasPctVac IN NUMBER,
+    pPvaDiasPctAgu IN NUMBER,
+    pPvaDiasBon IN NUMBER,
+    pPvaPctBon IN NUMBER,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+    SAVEPOINT transact;
+
+    IF pOpcion = 1 THEN
+        INSERT INTO PLA_PVA_PARAM_VACACION (
+            PVA_CODCIA,
+            PVA_TIPO,
+            PVA_CODMIN,
+            PVA_CODMAX,
+            PVA_DIAS_VAC,
+            PVA_DIAS_CSCS,
+            PVA_PCT_VAC,
+            PVA_DIAS_AGU,
+            PVA_PCT_AGU,
+            PVA_DIAS_PCTVAC,
+            PVA_DIAS_PCTAGU,
+            PVA_DIAS_BON,
+            PVA_PCT_BON
+        ) VALUES (
+            pPvaCodCia,
+            pPvaTipo,
+            pPvaCodMin,
+            pPvaCodMax,
+            pPvaDiasVac,
+            pPvaDiasCscs,
+            pPvaPctVac,
+            pPvaDiasAgu,
+            pPvaPctAgu,
+            pPvaDiasPctVac,
+            pPvaDiasPctAgu,
+            pPvaDiasBon,
+            pPvaPctBon
+        );
+
+    ELSIF pOpcion = 2 THEN
+        UPDATE PLA_PVA_PARAM_VACACION SET
+        	PVA_CODMAX = pPvaCodMax,
+            PVA_DIAS_VAC = pPvaDiasVac,
+            PVA_DIAS_CSCS = pPvaDiasCscs,
+            PVA_PCT_VAC = pPvaPctVac,
+            PVA_DIAS_AGU = pPvaDiasAgu,
+            PVA_PCT_AGU = pPvaPctAgu,
+            PVA_DIAS_PCTVAC = pPvaDiasPctVac,
+            PVA_DIAS_PCTAGU = pPvaDiasPctAgu,
+            PVA_DIAS_BON = pPvaDiasBon,
+            PVA_PCT_BON = pPvaPctBon
+        WHERE PVA_CODCIA = pPvaCodCia AND PVA_TIPO = pPvaTipo AND PVA_CODMIN = pPvaCodMin;
+
+    COMMIT;
+   
+   END IF;
+
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT
+                PVA_CODCIA,
+                PVA_TIPO,
+                PVA_CODMIN,
+                PVA_CODMAX,
+                PVA_DIAS_VAC,
+                PVA_DIAS_CSCS,
+                PVA_PCT_VAC,
+                PVA_DIAS_AGU,
+                PVA_PCT_AGU,
+                PVA_DIAS_PCTVAC,
+                PVA_DIAS_PCTAGU,
+                PVA_DIAS_BON,
+                PVA_PCT_BON
+            FROM PLA_PVA_PARAM_VACACION
+            WHERE PVA_CODCIA = pPvaCodCia AND PVA_TIPO = pPvaTipo AND PVA_CODMIN = pPvaCodMin;
+
+    ELSIF pOpcion = 5 THEN
+        -- Aquí podrías añadir la lógica de paginación sin un parámetro de búsqueda específico
+        SELECT COUNT(*) INTO vContador FROM PLA_PVA_PARAM_VACACION;
+        pTotalPage := CEIL(vContador / pPageSize);
+        OPEN pCursor FOR
+            SELECT * FROM (
+                SELECT temp.*, ROWNUM rnum
+                FROM (
+                    SELECT
+                        PVA_CODCIA,
+                        PVA_TIPO,
+                        PVA_CODMIN,
+                        PVA_CODMAX,
+                        PVA_DIAS_VAC,
+                        PVA_DIAS_CSCS,
+                        PVA_PCT_VAC,
+                        PVA_DIAS_AGU,
+                        PVA_PCT_AGU,
+                        PVA_DIAS_PCTVAC,
+                        PVA_DIAS_PCTAGU,
+                        PVA_DIAS_BON,
+                        PVA_PCT_BON
+                    FROM PLA_PVA_PARAM_VACACION
+                    ORDER BY PVA_CODCIA, PVA_TIPO, PVA_CODMIN
+                ) temp
+                WHERE ROWNUM <= pPageNumber * pPageSize
+            )
+            WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PLA_PVA_PARAM_VACACION;
+
+    -----------------------------------------------------------
+    
+    -- Seguro Medico Hospitalario
+
+    CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_SMH_SEGUMED_HOSPI(
+    pOpcion IN NUMBER,
+    pSmhCodCia IN OUT VARCHAR2,
+    pSmhAnioServIni IN OUT NUMBER,
+    pSmhAnioServFin IN NUMBER DEFAULT NULL,
+    pSmhPctCFam IN NUMBER DEFAULT NULL,
+    pSmhPctSFam IN NUMBER DEFAULT NULL,
+    pEstado IN NUMBER DEFAULT 1,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+    SAVEPOINT transact;
+
+    IF pOpcion = 1 THEN
+        INSERT INTO PLA_SMH_SEGUMED_HOSPI (
+            SMH_CODCIA,
+            SMH_ANIOSERV_INI,
+            SMH_ANIOSERV_FIN,
+            SMH_PCT_CFAM,
+            SMH_PCT_SFAM
+        ) VALUES (
+            pSmhCodCia,
+            pSmhAnioServIni,
+            pSmhAnioServFin,
+            pSmhPctCFam,
+            pSmhPctSFam
+        )
+        RETURNING SMH_CODCIA, SMH_ANIOSERV_INI INTO pSmhCodCia, pSmhAnioServIni;
+
+    ELSIF pOpcion = 2 THEN
+        UPDATE PLA_SMH_SEGUMED_HOSPI SET
+            SMH_ANIOSERV_FIN = pSmhAnioServFin,
+            SMH_PCT_CFAM = pSmhPctCFam,
+            SMH_PCT_SFAM = pSmhPctSFam
+        WHERE SMH_CODCIA = pSmhCodCia AND SMH_ANIOSERV_INI = pSmhAnioServIni;
+
+    COMMIT;
+
+    END IF;
+
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT 
+                SMH_CODCIA,
+                SMH_ANIOSERV_INI,
+                SMH_ANIOSERV_FIN,
+                SMH_PCT_CFAM,
+                SMH_PCT_SFAM
+            FROM PLA_SMH_SEGUMED_HOSPI
+            WHERE SMH_CODCIA = pSmhCodCia AND SMH_ANIOSERV_INI = pSmhAnioServIni;
+
+    ELSIF pOpcion = 5 THEN
+        SELECT COUNT(*) INTO vContador FROM PLA_SMH_SEGUMED_HOSPI;
+        pTotalPage := vContador;
+        OPEN pCursor FOR
+            SELECT * FROM (
+                SELECT temp.*, ROWNUM rnum
+                FROM (
+                    SELECT
+                        SMH_CODCIA,
+                        SMH_ANIOSERV_INI,
+                        SMH_ANIOSERV_FIN,
+                        SMH_PCT_CFAM,
+                        SMH_PCT_SFAM
+                    FROM PLA_SMH_SEGUMED_HOSPI
+                    ORDER BY SMH_CODCIA, SMH_ANIOSERV_INI
+                ) temp
+                WHERE ROWNUM <= pPageNumber * pPageSize
+            )
+            WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PLA_SMH_SEGUMED_HOSPI;
+
+    -----------------------------------------------------------
+    
+    -- Tipos de Planilla
+
+    CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_TPL_TIPO_PLANILLA(
+    pOpcion IN NUMBER,
+    pTplCodCia IN VARCHAR2,
+    pTplCodigo IN VARCHAR2,
+    pTplDescripcion IN VARCHAR2 DEFAULT NULL,
+    pTplTipo IN VARCHAR2 DEFAULT NULL,
+    pTplAplicacion IN VARCHAR2 DEFAULT NULL,
+    pTplNoPeriodo IN NUMBER DEFAULT NULL,
+    pTplTotalPeriodos IN NUMBER DEFAULT NULL,
+    pTplArea IN VARCHAR2 DEFAULT NULL,
+    pEstado IN NUMBER DEFAULT 1,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+	
+    SAVEPOINT transact;
+
+    IF pOpcion = 1 THEN
+        INSERT INTO PLA_TPL_TIPO_PLANILLA (
+            TPL_CODCIA,
+            TPL_CODIGO,
+            TPL_DESCRIPCION,
+            TPL_TIPO,
+            TPL_APLICACION,
+            TPL_NO_PERIODO,
+            TPL_TOTAL_PERIODOS,
+            TPL_AREA
+        ) VALUES (
+            pTplCodCia,
+            pTplCodigo,
+            pTplDescripcion,
+            pTplTipo,
+            pTplAplicacion,
+            pTplNoPeriodo,
+            pTplTotalPeriodos,
+            pTplArea
+        );
+
+    ELSIF pOpcion = 2 THEN
+        UPDATE PLA_TPL_TIPO_PLANILLA SET
+            TPL_DESCRIPCION = pTplDescripcion,
+            TPL_TIPO = pTplTipo,
+            TPL_APLICACION = pTplAplicacion,
+            TPL_NO_PERIODO = pTplNoPeriodo,
+            TPL_TOTAL_PERIODOS = pTplTotalPeriodos,
+            TPL_AREA = pTplArea
+        WHERE TPL_CODCIA = pTplCodCia AND TPL_CODIGO = pTplCodigo;
+
+    COMMIT;
+   
+   END IF;
+
+    IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+            SELECT
+                TPL_CODCIA,
+                TPL_CODIGO,
+                TPL_DESCRIPCION,
+                TPL_TIPO,
+                TPL_APLICACION,
+                TPL_NO_PERIODO,
+                TPL_TOTAL_PERIODOS,
+                TPL_AREA
+            FROM PLA_TPL_TIPO_PLANILLA
+            WHERE TPL_CODCIA = pTplCodCia AND TPL_CODIGO = pTplCodigo;
+
+	ELSIF pOpcion = 5 THEN
+	    SELECT COUNT(*) INTO vContador
+	    FROM PLA_TPL_TIPO_PLANILLA
+	    WHERE 
+	    (
+	        pTplDescripcion IS NULL
+	        OR pTplDescripcion = ''
+	        OR LOWER(TPL_DESCRIPCION) LIKE '%' || LOWER(TRIM(pTplDescripcion)) || '%'
+	    );
+	
+	    -- Asignar la cantidad total de páginas
+	    pTotalPage := vContador;
+	
+	    -- Abrir el cursor para obtener los resultados
+	    OPEN pCursor FOR
+	        SELECT * FROM (
+	            SELECT temp.*, ROWNUM rnum
+	            FROM (
+	                SELECT
+	                    TPL_CODCIA,
+	                    TPL_CODIGO,
+	                    TPL_DESCRIPCION,
+	                    TPL_TIPO,
+	                    TPL_APLICACION,
+	                    TPL_NO_PERIODO,
+	                    TPL_TOTAL_PERIODOS,
+	                    TPL_AREA
+	                FROM PLA_TPL_TIPO_PLANILLA
+	                WHERE 
+	                (
+	                    pTplDescripcion IS NULL
+	                    OR pTplDescripcion = ''
+	                    OR LOWER(TPL_DESCRIPCION) LIKE '%' || LOWER(TRIM(pTplDescripcion)) || '%'
+	                )
+	                ORDER BY TPL_CODCIA, TPL_CODIGO
+	            ) temp
+	            WHERE ROWNUM <= pPageNumber * pPageSize
+	        )
+	        WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+    ELSIF pOpcion = 6 THEN
+        OPEN pCursor FOR
+            SELECT TPL_CODIGO AS value, TPL_DESCRIPCION AS label
+            FROM PLA_TPL_TIPO_PLANILLA
+           	WHERE TPL_CODCIA = pTplCodCia;
+
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_PLA_TPL_TIPO_PLANILLA;
+
+    -----------------------------------------------------------
+    
+    -- Parametros generacion planilla
+
+
+
 ----------------------------------------
+
+--######################## AQUI TERMINA EL MODULO ADMINISTRACION DE SALARIOS ########################
 
    ---------------------------- ### TABLAS #### -----------------------------------------
 
