@@ -12483,6 +12483,14 @@ BEGIN
                 CIP_EMP_CODIGO AS value,
                 CIP_EMP_NOMBRE AS label
             FROM RHEPQ.CIP_EMPRESAS;
+
+    ELSIF pOpcion = 7 THEN -- Lista simple
+        OPEN pCursor FOR
+            SELECT
+                CIP_EMP_CODIGO AS value,
+                CIP_EMP_NOMBRE AS label
+            FROM RHEPQ.CIP_EMPRESAS
+           WHERE CIP_TIP_CODIGO = pCipTipCodigo;
            
     END IF;
    
@@ -12502,7 +12510,229 @@ BEGIN
 
    --// Personas
 
-   SELECT ROWID,CIP_PERSONA_CODIGO,CIP_PERSONA_NOMBRE,CIP_PERSONA_PRIMERNOMBRE,CIP_PERSONA_NOMBRE2,CIP_PERSONA_NOMBRE3,CIP_PERSONA_APELLIDO1,CIP_PERSONA_APELLIDO2,CIP_PERSONA_APELLIDOCAS,CIP_PERSONA_NO_CEDULA,CIP_DPI,CIP_PERSONA_TIPO_SANGRE,CIP_PERSONA_DIRECCION,CIP_PERSONA_COD_ESTATUS,CIP_PERSONA_OBSERVACIONES,CIP_PERSONA_AFILIADO_IGSS,CIP_PERSONA_ALERGICO_ATI,CIP_PERSONA_ALERGICO_DES,CIP_PERSONA_FE_INGRESO,CIP_PERSONA_USUARIO,CIP_PERSONA_FOTO FROM CIP_PERSONAS WHERE (fadwer)
+   CREATE OR REPLACE PROCEDURE RHEPQ.SP_CIP_PERSONAS(
+    pOpcion IN NUMBER,
+    pCipPersonaCodigo IN OUT NUMBER,
+    pCipPersonaNombre IN VARCHAR2 DEFAULT NULL,
+    pCipPersonaNombre2 IN VARCHAR2 DEFAULT NULL,
+    pCipPersonaNombre3 IN VARCHAR2 DEFAULT NULL,
+    pCipPersonaApellido1 IN VARCHAR2 DEFAULT NULL,
+    pCipPersonaApellido2 IN VARCHAR2 DEFAULT NULL,
+    pCipPersonaApellidocas IN VARCHAR2 DEFAULT NULL,
+    pCipPersonaPrimerNombre IN VARCHAR2 DEFAULT NULL,
+    pCipPersonaFoto IN BLOB DEFAULT NULL,
+    pCipCodigoCar IN CHAR DEFAULT NULL,
+    pCipDpi IN VARCHAR2 DEFAULT NULL,
+    pCipPersonaNoCedula IN VARCHAR2 DEFAULT NULL,
+    pCipPersonaTipoSangre IN VARCHAR2 DEFAULT NULL,
+    pCipPersonaDireccion IN VARCHAR2 DEFAULT NULL,
+    pCipPersonaPuestoOcupa IN NUMBER DEFAULT NULL,
+    pCipPersonaCodEstatus IN NUMBER DEFAULT NULL,
+    pCipPersonaObservaciones IN VARCHAR2 DEFAULT NULL,
+    pCipPersonaFeIngreso IN DATE DEFAULT NULL,
+    pCipPersonaUsuario IN VARCHAR2 DEFAULT NULL,
+    pCipPersonaFeRetiro IN DATE DEFAULT NULL,
+    pCipPersonaAfiliadoIgss IN VARCHAR2 DEFAULT NULL,
+    pCipPersonaAlergicoAti IN VARCHAR2 DEFAULT 'N',
+    pCipPersonaAlergicoDes IN VARCHAR2 DEFAULT NULL,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+) AS
+    vContador NUMBER;
+BEGIN
+    SAVEPOINT transact;
+
+    IF pOpcion = 1 THEN
+    INSERT INTO RHEPQ.CIP_PERSONAS (
+        CIP_PERSONA_CODIGO,
+        CIP_PERSONA_NOMBRE2,
+        CIP_PERSONA_NOMBRE3,
+        CIP_PERSONA_APELLIDO1,
+        CIP_PERSONA_APELLIDO2,
+        CIP_PERSONA_APELLIDOCAS,
+        CIP_PERSONA_PRIMERNOMBRE,
+        CIP_PERSONA_FOTO,
+        CIP_CODIGO_CAR,
+        CIP_DPI,
+        CIP_PERSONA_NOMBRE,
+        CIP_PERSONA_NO_CEDULA,
+        CIP_PERSONA_TIPO_SANGRE,
+        CIP_PERSONA_DIRECCION,
+        CIP_PERSONA_PUESTO_OCUPA,
+        CIP_PERSONA_COD_ESTATUS,
+        CIP_PERSONA_OBSERVACIONES,
+        CIP_PERSONA_FE_INGRESO,
+        CIP_PERSONA_USUARIO,
+        CIP_PERSONA_FE_RETIRO,
+        CIP_PERSONA_AFILIADO_IGSS,
+        CIP_PERSONA_ALERGICO_ATI,
+        CIP_PERSONA_ALERGICO_DES
+    ) VALUES (
+        pCipPersonaCodigo,
+        pCipPersonaNombre2,
+        pCipPersonaNombre3,
+        pCipPersonaApellido1,
+        pCipPersonaApellido2,
+        pCipPersonaApellidocas,
+        pCipPersonaPrimerNombre,
+        pCipPersonaFoto,
+        pCipCodigoCar,
+        pCipDpi,
+        pCipPersonaNombre,
+        pCipPersonaNoCedula,
+        pCipPersonaTipoSangre,
+        pCipPersonaDireccion,
+        pCipPersonaPuestoOcupa,
+        pCipPersonaCodEstatus,
+        pCipPersonaObservaciones,
+        pCipPersonaFeIngreso,
+        pCipPersonaUsuario,
+        pCipPersonaFeRetiro,
+        pCipPersonaAfiliadoIgss,
+        pCipPersonaAlergicoAti,
+        pCipPersonaAlergicoDes
+    )
+    RETURNING CIP_PERSONA_CODIGO INTO pCipPersonaCodigo;   
+   
+    ELSIF pOpcion = 2 THEN
+	    UPDATE RHEPQ.CIP_PERSONAS SET
+	        CIP_PERSONA_NOMBRE2 = pCipPersonaNombre2,
+	        CIP_PERSONA_NOMBRE3 = pCipPersonaNombre3,
+	        CIP_PERSONA_APELLIDO1 = pCipPersonaApellido1,
+	        CIP_PERSONA_APELLIDO2 = pCipPersonaApellido2,
+	        CIP_PERSONA_APELLIDOCAS = pCipPersonaApellidocas,
+	        CIP_PERSONA_PRIMERNOMBRE = pCipPersonaPrimerNombre,
+	        CIP_PERSONA_FOTO = pCipPersonaFoto,
+	        CIP_CODIGO_CAR = pCipCodigoCar,
+	        CIP_DPI = pCipDpi,
+	        CIP_PERSONA_NOMBRE = pCipPersonaNombre,
+	        CIP_PERSONA_NO_CEDULA = pCipPersonaNoCedula,
+	        CIP_PERSONA_TIPO_SANGRE = pCipPersonaTipoSangre,
+	        CIP_PERSONA_DIRECCION = pCipPersonaDireccion,
+	        CIP_PERSONA_PUESTO_OCUPA = pCipPersonaPuestoOcupa,
+	        CIP_PERSONA_COD_ESTATUS = pCipPersonaCodEstatus,
+	        CIP_PERSONA_OBSERVACIONES = pCipPersonaObservaciones,
+	        CIP_PERSONA_FE_INGRESO = pCipPersonaFeIngreso,
+	        CIP_PERSONA_USUARIO = pCipPersonaUsuario,
+	        CIP_PERSONA_FE_RETIRO = pCipPersonaFeRetiro,
+	        CIP_PERSONA_AFILIADO_IGSS = pCipPersonaAfiliadoIgss,
+	        CIP_PERSONA_ALERGICO_ATI = pCipPersonaAlergicoAti,
+	        CIP_PERSONA_ALERGICO_DES = pCipPersonaAlergicoDes
+	    WHERE CIP_PERSONA_CODIGO = pCipPersonaCodigo;
+	   
+   	ELSIF pOpcion = 3 THEN
+	    UPDATE RHEPQ.CIP_PERSONAS SET
+	        CIP_PERSONA_COD_ESTATUS = pCipPersonaCodEstatus,
+	        CIP_PERSONA_FE_INGRESO = pCipPersonaFeIngreso,
+	        CIP_PERSONA_FE_RETIRO = pCipPersonaFeRetiro
+	    WHERE CIP_PERSONA_CODIGO = pCipPersonaCodigo;
+	   
+    COMMIT;
+
+    END IF; -- Cierra el primer bloque IF
+    
+	IF pOpcion IN (1, 2, 3, 4) THEN
+    	OPEN pCursor FOR
+		    SELECT
+		        CIP_PERSONA_CODIGO,
+		        CIP_PERSONA_NOMBRE2,
+		        CIP_PERSONA_NOMBRE3,
+		        CIP_PERSONA_APELLIDO1,
+		        CIP_PERSONA_APELLIDO2,
+		        CIP_PERSONA_APELLIDOCAS,
+		        CIP_PERSONA_PRIMERNOMBRE,
+		        CIP_PERSONA_FOTO,
+		        CIP_CODIGO_CAR,
+		        CIP_DPI,
+		        CIP_PERSONA_NOMBRE,
+		        CIP_PERSONA_NO_CEDULA,
+		        CIP_PERSONA_TIPO_SANGRE,
+		        CIP_PERSONA_DIRECCION,
+		        CIP_PERSONA_PUESTO_OCUPA,
+		        CIP_PERSONA_COD_ESTATUS,
+		        CIP_PERSONA_OBSERVACIONES,
+		        CIP_PERSONA_FE_INGRESO,
+		        CIP_PERSONA_USUARIO,
+		        CIP_PERSONA_FE_RETIRO,
+		        CIP_PERSONA_AFILIADO_IGSS,
+		        CIP_PERSONA_ALERGICO_ATI,
+		        CIP_PERSONA_ALERGICO_DES
+		    FROM RHEPQ.CIP_PERSONAS
+		    WHERE CIP_PERSONA_CODIGO = pCipPersonaCodigo;
+  
+	ELSIF pOpcion = 5 THEN
+	        -- Contar la cantidad de registros que cumplen con los criterios de búsqueda
+	        SELECT COUNT(*) INTO vContador
+	        FROM RHEPQ.CIP_PERSONAS CP
+	        WHERE 
+	        (
+	            pCipPersonaPrimerNombre IS NULL
+	            OR pCipPersonaPrimerNombre = ''
+	            OR (NOT REGEXP_LIKE(pCipPersonaPrimerNombre, '^\d+$') AND LOWER(RHEPQ.GetNombreCompletoEmpleadoCIP(CP.CIP_PERSONA_CODIGO)) LIKE '%' || LOWER(TRIM(pCipPersonaPrimerNombre)) || '%')
+	        );
+	
+	        -- Asignar la cantidad total de páginas
+	        pTotalPage := vContador;
+	
+	        -- Abrir el cursor para obtener los resultados con paginación
+	        OPEN pCursor FOR
+	            SELECT * FROM (
+	                SELECT temp.*, ROWNUM rnum
+	                FROM (
+	                    SELECT
+	                        CP.CIP_PERSONA_CODIGO,
+	                        CP.CIP_PERSONA_NOMBRE2,
+	                        CP.CIP_PERSONA_NOMBRE3,
+	                        CP.CIP_PERSONA_APELLIDO1,
+	                        CP.CIP_PERSONA_APELLIDO2,
+	                        CP.CIP_PERSONA_APELLIDOCAS,
+	                        CP.CIP_PERSONA_PRIMERNOMBRE,
+	                        CP.CIP_PERSONA_FOTO,
+	                        CP.CIP_CODIGO_CAR,
+	                        CP.CIP_DPI,
+	                        CP.CIP_PERSONA_NOMBRE,
+	                        CP.CIP_PERSONA_NO_CEDULA,
+	                        CP.CIP_PERSONA_TIPO_SANGRE,
+	                        CP.CIP_PERSONA_DIRECCION,
+	                        CP.CIP_PERSONA_PUESTO_OCUPA,
+	                        CP.CIP_PERSONA_COD_ESTATUS,
+	                        CP.CIP_PERSONA_OBSERVACIONES,
+	                        CP.CIP_PERSONA_FE_INGRESO,
+	                        CP.CIP_PERSONA_USUARIO,
+	                        CP.CIP_PERSONA_FE_RETIRO,
+	                        CP.CIP_PERSONA_AFILIADO_IGSS,
+	                        CP.CIP_PERSONA_ALERGICO_ATI,
+	                        CP.CIP_PERSONA_ALERGICO_DES
+	                    FROM RHEPQ.CIP_PERSONAS CP
+	                    WHERE
+	                    (
+	                        pCipPersonaPrimerNombre IS NULL
+	                        OR pCipPersonaPrimerNombre = ''
+	                        OR (NOT REGEXP_LIKE(pCipPersonaPrimerNombre, '^\d+$') AND LOWER(RHEPQ.GetNombreCompletoEmpleadoCIP(CP.CIP_PERSONA_CODIGO)) LIKE '%' || LOWER(TRIM(pCipPersonaPrimerNombre)) || '%')
+	                    )
+	                    ORDER BY CP.CIP_PERSONA_CODIGO
+	                ) temp
+	                WHERE ROWNUM <= pPageNumber * pPageSize
+	            )
+	            WHERE rnum > (pPageNumber - 1) * pPageSize;
+           
+       ELSIF pOpcion = 6 THEN
+           OPEN pCursor FOR
+		    SELECT
+		        CIP_PERSONA_CODIGO AS value,
+		        RHEPQ.GetNombreCompletoEmpleadoCIP(CIP_PERSONA_CODIGO) AS label
+		    FROM RHEPQ.CIP_PERSONAS
+		    WHERE CIP_PERSONA_COD_ESTATUS = pCipPersonaCodEstatus;		   
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_CIP_PERSONAS;
 
 --- ############ SUBMODULO DE MANTENIMIENTOS
 
@@ -12510,13 +12740,358 @@ BEGIN
 
    --// Datos Gafetes
 
+   CREATE OR REPLACE PROCEDURE RHEPQ.SP_CIP_DATOS_GAFETES (
+    pOpcion IN NUMBER,
+    pCipNumReposicion IN OUT NUMBER,
+    pCipGafCodigo IN NUMBER DEFAULT NULL,
+    pCipPersonaCodigo IN NUMBER DEFAULT NULL,
+    pCipTipCodigo IN NUMBER DEFAULT NULL,
+    pCipEstCodigo IN NUMBER DEFAULT NULL,
+    pCipEmpCodigo IN NUMBER DEFAULT NULL,
+    pCipAreaCodigo IN NUMBER DEFAULT NULL,
+    pCipGafeteFeIngreso IN DATE DEFAULT NULL,
+    pCipGafeteFechaEmision IN DATE DEFAULT NULL,
+    pCipGafeteObservacion IN VARCHAR2 DEFAULT NULL,
+    pCipGafeteFechaImpresion IN DATE DEFAULT NULL,
+    pCipGafeteUsuario IN VARCHAR2 DEFAULT NULL,
+    pCipGafeteFoto IN BLOB DEFAULT NULL,
+    pCipPersonaNombre IN VARCHAR2 DEFAULT NULL,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER   
+) AS
+    vContador NUMBER;
+BEGIN
+    SAVEPOINT transact;
+
+    IF pOpcion = 1 THEN
+        INSERT INTO CIP_DATOS_GAFETES (
+            CIP_NUM_REPOSICION,
+            CIP_GAF_CODIGO,
+            CIP_PERSONA_CODIGO,
+            CIP_TIP_CODIGO,
+            CIP_EST_CODIGO,
+            CIP_EMP_CODIGO,
+            CIP_AREA_CODIGO,
+            CIP_GAFETE_FE_INGRESO,
+            CIP_GAFETE_FECHA_EMISION,
+            CIP_GAFETE_OBSERVACION,
+            CIP_GAFETE_FECHA_IMPRESION,
+            CIP_GAFETE_USUARIO,
+            CIP_GAFETE_FOTO
+        ) VALUES (
+            pCipNumReposicion,
+            pCipGafCodigo,
+            pCipPersonaCodigo,
+            pCipTipCodigo,
+            pCipEstCodigo,
+            pCipEmpCodigo,
+            pCipAreaCodigo,
+            pCipGafeteFeIngreso,
+            pCipGafeteFechaEmision,
+            pCipGafeteObservacion,
+            pCipGafeteFechaImpresion,
+            pCipGafeteUsuario,
+            pCipGafeteFoto
+        )
+        RETURNING CIP_NUM_REPOSICION INTO pCipNumReposicion;
+
+	ELSIF pOpcion = 2 THEN
+	    UPDATE CIP_DATOS_GAFETES SET
+	        CIP_GAFETE_FE_INGRESO = pCipGafeteFeIngreso,
+	        CIP_GAFETE_FECHA_EMISION = pCipGafeteFechaEmision,
+	        CIP_GAFETE_OBSERVACION = pCipGafeteObservacion,
+	        CIP_GAFETE_FECHA_IMPRESION = pCipGafeteFechaImpresion,
+	        CIP_GAFETE_USUARIO = pCipGafeteUsuario,
+	        CIP_GAFETE_FOTO = pCipGafeteFoto,
+	        CIP_EST_CODIGO = pCipEstCodigo
+	    WHERE 
+	        CIP_NUM_REPOSICION = pCipNumReposicion AND 
+	        CIP_GAF_CODIGO = pCipGafCodigo AND 
+	        CIP_PERSONA_CODIGO = pCipPersonaCodigo AND
+	        CIP_TIP_CODIGO = pCipTipCodigo AND
+	        CIP_EMP_CODIGO = pCipEmpCodigo;
+
+  	ELSIF pOpcion = 3 THEN
+	    UPDATE CIP_DATOS_GAFETES SET
+	        CIP_EST_CODIGO = pCipEstCodigo
+	    WHERE 
+	        CIP_NUM_REPOSICION = pCipNumReposicion AND 
+	        CIP_GAF_CODIGO = pCipGafCodigo AND 
+	        CIP_PERSONA_CODIGO = pCipPersonaCodigo AND
+	        CIP_TIP_CODIGO = pCipTipCodigo AND
+	        CIP_EMP_CODIGO = pCipEmpCodigo;
+	       
+	COMMIT;
+	       
+    END IF;
+
+     -- Lógica adicional para otras opciones
+	IF pOpcion IN (1, 2, 3, 4) THEN
+	    OPEN pCursor FOR
+	        SELECT 
+				DG.CIP_NUM_REPOSICION,
+				DG.CIP_GAF_CODIGO,
+				DG.CIP_PERSONA_CODIGO,
+				DG.CIP_TIP_CODIGO,
+				DG.CIP_EST_CODIGO,
+				E.CIP_EST_DESCRIPCION,
+				DG.CIP_EMP_CODIGO,
+				DG.CIP_AREA_CODIGO,
+				DG.CIP_GAFETE_FE_INGRESO,
+				DG.CIP_GAFETE_FECHA_EMISION,
+				DG.CIP_GAFETE_OBSERVACION,
+				DG.CIP_GAFETE_FECHA_IMPRESION,
+				DG.CIP_GAFETE_USUARIO,
+				DG.CIP_GAFETE_FOTO
+			FROM CIP_DATOS_GAFETES DG
+			INNER JOIN RHEPQ.CIP_ESTATUS E ON DG.CIP_EST_CODIGO = E.CIP_EST_CODIGO 
+	        WHERE 
+	            DG.CIP_NUM_REPOSICION = pCipNumReposicion AND
+	            DG.CIP_GAF_CODIGO = pCipGafCodigo AND
+	            DG.CIP_PERSONA_CODIGO = pCipPersonaCodigo AND
+	            DG.CIP_TIP_CODIGO = pCipTipCodigo AND
+	            DG.CIP_EMP_CODIGO = pCipEmpCodigo;
+
+	ELSIF pOpcion = 5 THEN	    
+	    SELECT COUNT(*) INTO vContador
+	    FROM CIP_DATOS_GAFETES CG
+	    INNER JOIN RHEPQ.CIP_ESTATUS E ON CG.CIP_EST_CODIGO = E.CIP_EST_CODIGO 
+	    WHERE 
+	    (
+	        pCipPersonaNombre IS NULL
+	        OR pCipPersonaNombre = ''
+	        OR (NOT REGEXP_LIKE(pCipPersonaNombre, '^\d+$') AND LOWER(RHEPQ.GetNombreCompletoEmpleadoCIP(CG.CIP_PERSONA_CODIGO)) LIKE '%' || LOWER(TRIM(pCipPersonaNombre)) || '%')
+	    );
+	
+	    -- Asignar la cantidad total de páginas
+	    pTotalPage := vContador;
+	
+	    -- Abrir el cursor para obtener los resultados con paginación
+	    OPEN pCursor FOR
+	        SELECT * FROM (
+	            SELECT temp.*, ROWNUM rnum
+	            FROM (
+	                SELECT
+	                    CG.CIP_NUM_REPOSICION,
+	                    CG.CIP_GAF_CODIGO,
+	                    CG.CIP_PERSONA_CODIGO,
+	                    CG.CIP_TIP_CODIGO,
+	                    CG.CIP_EST_CODIGO,
+	                    CG.CIP_EMP_CODIGO,
+	                    CG.CIP_AREA_CODIGO,
+	                    CG.CIP_GAFETE_FE_INGRESO,
+	                    CG.CIP_GAFETE_FECHA_EMISION,
+	                    CG.CIP_GAFETE_OBSERVACION,
+	                    CG.CIP_GAFETE_FECHA_IMPRESION,
+	                    CG.CIP_GAFETE_USUARIO,
+	                    CG.CIP_GAFETE_FOTO
+	                FROM CIP_DATOS_GAFETES CG
+	                INNER JOIN RHEPQ.CIP_ESTATUS E ON CG.CIP_EST_CODIGO = E.CIP_EST_CODIGO 
+	                WHERE
+	                (
+	                    pCipPersonaNombre IS NULL
+	                    OR pCipPersonaNombre = ''
+	                    OR (NOT REGEXP_LIKE(pCipPersonaNombre, '^\d+$') AND LOWER(RHEPQ.GetNombreCompletoEmpleadoCIP(CG.CIP_PERSONA_CODIGO)) LIKE '%' || LOWER(TRIM(pCipPersonaNombre)) || '%')
+	                )
+	                ORDER BY CG.CIP_NUM_REPOSICION, CG.CIP_GAF_CODIGO, CG.CIP_PERSONA_CODIGO
+	            ) temp
+	            WHERE ROWNUM <= pPageNumber * pPageSize
+	        )
+	        WHERE rnum > (pPageNumber - 1) * pPageSize;
+
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_CIP_DATOS_GAFETES;
+
 ------------------------------------------------
 
    --// Detalle de Personas
 
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_CIP_DET_PERSONAS (
+    pOpcion IN NUMBER,
+    pPersonaCodigo IN NUMBER,
+    pPuestoCodigo IN NUMBER,
+    pTipCodigo IN NUMBER,
+    pEmpCodigo IN NUMBER,
+    pDetPersonaCodEstatus IN NUMBER,
+    pDetPersonaObservaciones IN VARCHAR2,
+    pDetPersonaFeAlta IN DATE,
+    pDetPersonaDoctoAlta IN VARCHAR2,
+    pDetPersonaFeBaja IN DATE,
+    pDetPersonaDoctoBaja IN VARCHAR2,
+    pDetPersonaFeIngreso IN DATE,
+    pDetPersonaUsuario IN VARCHAR2,
+    pDetPersonaNombre IN VARCHAR2 DEFAULT NULL,
+    pUsuario IN NUMBER,
+    pPageNumber IN NUMBER DEFAULT 1,
+    pPageSize IN NUMBER DEFAULT 10,
+    pCursor OUT SYS_REFCURSOR,
+    pTotalPage OUT NUMBER
+)  AS
+    vContador NUMBER;
+BEGIN
+    SAVEPOINT transact;
+
+    IF pOpcion = 1 THEN
+        INSERT INTO CIP_DET_PERSONAS (
+            CIP_PERSONA_CODIGO,
+            CIP_PUESTO_CODIGO,
+            CIP_TIP_CODIGO,
+            CIP_EMP_CODIGO,
+            CIP_DET_PERSONA_COD_ESTATUS,
+            CIP_DET_PERSONA_OBSERVACIONES,
+            CIP_DET_PERSONA_FE_ALTA,
+            CIP_DE_PERSONA_DOCTO_ALTA,
+            CIP_DET_PERSONA_FE_BAJA,
+            CIP_DET_PERSONA_DOCTO_BAJA,
+            CIP_DET_PERSONA_FE_INGRESO,
+            CIP_DET_PERSONA_USUARIO
+        ) VALUES (
+            pPersonaCodigo,
+            pPuestoCodigo,
+            pTipCodigo,
+            pEmpCodigo,
+            pDetPersonaCodEstatus,
+            pDetPersonaObservaciones,
+            TRUNC(pDetPersonaFeAlta),
+            pDetPersonaDoctoAlta,
+            pDetPersonaFeBaja,
+            pDetPersonaDoctoBaja,
+            pDetPersonaFeIngreso,
+            pDetPersonaUsuario
+        );
+        
+    ELSIF pOpcion = 2 THEN
+        UPDATE CIP_DET_PERSONAS SET
+            CIP_DET_PERSONA_COD_ESTATUS = pDetPersonaCodEstatus,
+            CIP_DET_PERSONA_OBSERVACIONES = pDetPersonaObservaciones,
+            CIP_DE_PERSONA_DOCTO_ALTA = pDetPersonaDoctoAlta,
+            CIP_DET_PERSONA_FE_BAJA = pDetPersonaFeBaja,
+            CIP_DET_PERSONA_DOCTO_BAJA = pDetPersonaDoctoBaja,
+            CIP_DET_PERSONA_FE_INGRESO = pDetPersonaFeIngreso,
+            CIP_DET_PERSONA_USUARIO = pDetPersonaUsuario
+        WHERE 
+            CIP_PERSONA_CODIGO = pPersonaCodigo AND
+            CIP_PUESTO_CODIGO = pPuestoCodigo AND
+            CIP_TIP_CODIGO = pTipCodigo AND
+            CIP_EMP_CODIGO = pEmpCodigo AND
+            CIP_DET_PERSONA_FE_ALTA = pDetPersonaFeAlta;
+        
+    ELSIF pOpcion = 3 THEN
+        UPDATE CIP_DET_PERSONAS SET
+            CIP_DET_PERSONA_COD_ESTATUS = pDetPersonaCodEstatus
+        WHERE 
+            CIP_PERSONA_CODIGO = pPersonaCodigo AND
+            CIP_PUESTO_CODIGO = pPuestoCodigo AND
+            CIP_TIP_CODIGO = pTipCodigo AND
+            CIP_EMP_CODIGO = pEmpCodigo AND
+            CIP_DET_PERSONA_FE_ALTA = pDetPersonaFeAlta;
+        
+    COMMIT;
+   
+    END IF;
+
+	IF pOpcion IN (1, 2, 3, 4) THEN
+        OPEN pCursor FOR
+			 SELECT
+			    DP.CIP_PERSONA_CODIGO,
+			    DP.CIP_PUESTO_CODIGO,
+			    PUE.CIP_PUESTO_DESCRIPCION,
+			    DP.CIP_TIP_CODIGO,
+			    TE.CIP_TIP_DESCRIPCION,
+			    DP.CIP_EMP_CODIGO,
+			    EMP.CIP_EMP_NOMBRE,
+			    DP.CIP_DET_PERSONA_COD_ESTATUS,
+			    E.CIP_EST_DESCRIPCION,
+			    DP.CIP_DET_PERSONA_OBSERVACIONES,
+			    DP.CIP_DET_PERSONA_FE_ALTA,
+			    DP.CIP_DE_PERSONA_DOCTO_ALTA,
+			    DP.CIP_DET_PERSONA_FE_BAJA,
+			    DP.CIP_DET_PERSONA_DOCTO_BAJA,
+			    DP.CIP_DET_PERSONA_FE_INGRESO,
+			    DP.CIP_DET_PERSONA_USUARIO
+			FROM CIP_DET_PERSONAS DP
+			INNER JOIN RHEPQ.CIP_ESTATUS E ON DP.CIP_DET_PERSONA_COD_ESTATUS = E.CIP_EST_CODIGO 
+			LEFT  JOIN RHEPQ.CIP_TIPO_EMPRESA TE ON TE.CIP_TIP_CODIGO = DP.CIP_TIP_CODIGO 
+			LEFT JOIN RHEPQ.CIP_EMPRESAS EMP ON EMP.CIP_EMP_CODIGO = DP.CIP_EMP_CODIGO AND EMP.CIP_TIP_CODIGO = TE.CIP_TIP_CODIGO
+			LEFT JOIN RHEPQ.CIP_PUESTO PUE ON PUE.CIP_PUESTO_CODIGO = DP.CIP_PUESTO_CODIGO 
+			    AND PUE.CIP_TIP_CODIGO = DP.CIP_TIP_CODIGO
+			    AND PUE.CIP_EMP_CODIGO = DP.CIP_EMP_CODIGO
+			WHERE 
+			    DP.CIP_PERSONA_CODIGO = pPersonaCodigo AND
+			    DP.CIP_PUESTO_CODIGO = pPuestoCodigo AND
+			    DP.CIP_TIP_CODIGO = pTipCodigo AND
+			    DP.CIP_EMP_CODIGO = pEmpCodigo AND
+			    DP.CIP_DET_PERSONA_FE_ALTA = pDetPersonaFeAlta;
+	           
+   ELSIF pOpcion = 5 THEN
+	    -- Contar el total de registros que coinciden con el criterio de búsqueda para la paginación
+	    SELECT COUNT(*) INTO vContador
+	    FROM CIP_DET_PERSONAS DP
+	    INNER JOIN RHEPQ.CIP_ESTATUS E ON DP.CIP_DET_PERSONA_COD_ESTATUS = E.CIP_EST_CODIGO 
+	    WHERE
+	    (
+	        pDetPersonaNombre IS NULL
+	        OR pDetPersonaNombre = ''
+	        OR (NOT REGEXP_LIKE(pDetPersonaNombre, '^\d+$') AND LOWER(RHEPQ.GetNombreCompletoEmpleadoCIP(DP.CIP_PERSONA_CODIGO)) LIKE '%' || LOWER(TRIM(pDetPersonaNombre)) || '%')
+	    );
+	
+	    -- Asignar la cantidad total de páginas
+	    pTotalPage := vContador;
+	
+	    -- Abrir el cursor para obtener los resultados con paginación
+	    OPEN pCursor FOR
+	        SELECT * FROM (
+	            SELECT temp.*, ROWNUM rnum
+	            FROM (
+	                SELECT
+	                    DP.CIP_PERSONA_CODIGO,
+	                    DP.CIP_PUESTO_CODIGO,
+	                    DP.CIP_TIP_CODIGO,
+	                    DP.CIP_EMP_CODIGO,
+	                    DP.CIP_DET_PERSONA_COD_ESTATUS,
+	                    E.CIP_EST_DESCRIPCION,
+	                    DP.CIP_DET_PERSONA_OBSERVACIONES,
+	                    DP.CIP_DET_PERSONA_FE_ALTA,
+	                    DP.CIP_DE_PERSONA_DOCTO_ALTA,
+	                    DP.CIP_DET_PERSONA_FE_BAJA,
+	                    DP.CIP_DET_PERSONA_DOCTO_BAJA,
+	                    DP.CIP_DET_PERSONA_FE_INGRESO,
+	                    DP.CIP_DET_PERSONA_USUARIO
+	                FROM CIP_DET_PERSONAS DP
+	                INNER JOIN RHEPQ.CIP_ESTATUS E ON DP.CIP_DET_PERSONA_COD_ESTATUS = E.CIP_EST_CODIGO 
+	                WHERE
+	                (
+	                    pDetPersonaNombre IS NULL
+	                    OR pDetPersonaNombre = ''
+	                    OR (NOT REGEXP_LIKE(pDetPersonaNombre, '^\d+$') AND LOWER(RHEPQ.GetNombreCompletoEmpleadoCIP(DP.CIP_PERSONA_CODIGO)) LIKE '%' || LOWER(TRIM(pDetPersonaNombre)) || '%')
+	                )
+	                ORDER BY DP.CIP_PERSONA_CODIGO
+	            ) temp
+	            WHERE ROWNUM <= pPageNumber * pPageSize
+	        )
+	        WHERE rnum > (pPageNumber - 1) * pPageSize;
+	       
+   END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK TO transact;
+        RAISE;
+END SP_CIP_DET_PERSONAS;
+
 ------------------------------------------------
 
    --// Autorizaciones
+
+     
 
 ------------------------------------------------
 
