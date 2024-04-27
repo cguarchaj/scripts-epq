@@ -688,6 +688,281 @@ SELECT ROWID,TDC_CODCIA,TDC_CODIGO,TDC_DESCRIPCION,TDC_CTA_CONTABLE,TDC_CTA_CONT
 
     --// Ingresos fijos del empleado # no se puede abrir
 
+    --- ############ SUBMODULO DE PROCESOS
+
+    --- ##### // Prepración de Nómina
+
+    --// Descuentos ciclicos por empleado # YA
+
+	--// consulta de cuotas descuentos ciclicos # YA
+    
+    --// Generacion plan de vacaciones
+
+    Mensual M
+Catorcenal C
+Quincenal Q
+Semanal S
+
+
+Declare
+   Movimiento    Exception;
+-- PRAGMA Exception_Init (Movimiento  -20208);
+Begin
+if :respuesta = 'S'
+   then message ('Espere un Momento. Generando Plan Vacaciones....');
+        synchronize;
+        verifica;
+        PLAN_VACACION(:header.compania, :periodo, :tipo, :salario);
+        if not form_failure
+           then :system.message_level := 5;
+                commit;
+                :system.message_level := 0;
+                message ('Proceso Terminado con Exito');
+           else message ('Precaucion. Proceso no pudo Generarse');
+                raise movimiento;
+        end if;
+        exit_form (no_validate);
+   else exit_form(no_validate);
+end if;
+Exception
+   When Movimiento
+        then bell;
+             message ('Codigo de Movimiento NO existe. Verifique');
+             raise form_trigger_failure;
+End;
+
+
+-------------------
+
+PROCEDURE verifica IS
+
+	cursor c1 is
+  select distinct(vac_periodo) 
+    from pla_vac_vacacion
+   where VAC_CODCIA  	= :header.compania
+     and VAC_PERIODO  = :periodo;
+
+v_periodo varchar2(9);
+
+BEGIN
+     
+     open c1;
+     fetch c1 into v_periodo;
+      if c1%found then
+      	msg_alerta('Este periodo ya existe generado.  Favor revise.....');
+      	raise form_trigger_failure;
+      end if;
+      
+END;
+
+-------------------------
+
+Procedure plan_vacacion
+                    (compania      in       VARCHAR2,
+                     periodo       in       VARCHAR2,
+                     ingreso       in       VARCHAR2,
+                     salario       in       VARCHAR2) is
+   --*
+   --* Selecciona a los Empleados Registrados en el Sistema
+   --*
+   Cursor c_empleado is
+      Select emp_codcia, emp_codigo, emp_fecha_ingreso,
+             dpl_tipo_salario,
+             to_number(substr(periodo,6,4)) -
+             to_number(to_char(emp_fecha_ingreso,'YYYY')) + 1 anio_servicio,
+             to_date(to_char(emp_fecha_ingreso,'DD/MM/')||substr(periodo,1,4),'DD/MM/YYYY') inicio,
+             to_date(to_char(emp_fecha_ingreso,'DD/MM/')||substr(periodo,6,4),'DD/MM/YYYY')-1 final
+        from pla_emp_empleado, pla_dpl_datosplanilla
+       where emp_codcia 			= compania
+         and emp_estado 			in ('A', 'S')
+         and emp_codcia 			= dpl_codcia
+         and emp_codigo 			= dpl_codemp
+         and dpl_tipo_salario = salario
+         and emp_fecha_retiro is null
+         and emp_fecha_ingreso < to_date('01/01/'||
+             to_char(to_number(substr(periodo,1,4)+1),'0000'),'DD/MM/YYYY');
+--         and to_date('31/12/'||
+--             to_char(to_number(substr(periodo,6,4)),'0000'),'DD/MM/YYYY');
+--         and emp_fecha_ingreso < to_date('01/01/'||substr(periodo,1,4),'DD/MM/YYYY');
+   v_empleado    c_empleado%ROWTYPE;
+   dias_pendientes  number;
+   periodo_anterior VARCHAR2(9);
+   dias_vacacion    number;
+   dias_cscs        number;
+Begin
+   For v_empleado in c_empleado
+      Loop
+      --	message('ya entro al loop');
+      --	pause;
+        dias_pendientes := 0;
+        dias_vacacion := 0;
+        --*
+        --* Obtengo los Dias No Gozados del Periodo Anterior 
+        --*
+        Begin
+         Select to_char(to_number(substr(periodo, 1,4)) - 1)||
+                '-'||
+                to_char(to_number(substr(periodo, 6,4)) - 1)
+           Into periodo_anterior
+           From dual;
+         Select (nvl(vac_periodo_ant,0) + nvl(vac_dias,0)) - nvl(vac_gozados,0)
+           Into dias_pendientes
+           From pla_vac_vacacion
+          Where vac_codcia  = compania
+            and vac_codemp  = v_empleado.emp_codigo
+            and vac_periodo = periodo_anterior;
+         Exception When NO_DATA_FOUND
+             Then dias_pendientes := 0;
+        End;
+        --*
+        --* Selecciono Dias De Vacación que corresponden al Empleado
+        --*
+        Begin
+            Select pva_dias_vac, pva_dias_cscs
+              Into dias_vacacion, dias_cscs
+              From pla_pva_param_vacacion
+             Where pva_codcia = compania
+               and pva_tipo   = v_empleado.dpl_tipo_salario
+               and pva_codmin <= v_empleado.anio_servicio
+               and pva_codmax >= v_empleado.anio_servicio ;
+           Exception When NO_DATA_FOUND
+             Then dias_vacacion := 0;
+        End; 
+        --*
+        --* Inserto Plan de Vacación Para Cada Empleado
+        --* 
+           Insert into pla_vac_vacacion
+              (vac_codcia,  vac_codemp, 
+               vac_periodo, vac_desde, 
+               vac_hasta,   vac_periodo_ant,
+               vac_dias,    vac_gozados,
+               vac_codtig, vac_cscs)
+             Values (compania, v_empleado.emp_codigo,
+                     periodo, v_empleado.inicio,
+                     v_empleado.final, dias_pendientes,
+                     dias_vacacion, 0,
+                     ingreso, dias_cscs);         
+      End loop;
+End;
+
+SELECT * FROM RHEPQ.pla_vac_vacacion ORDER BY VAC_PERIODO DESC
+
+SELECT * FROM RHEPQ.PLA_TIG_TIPO_INGRESO
+
+  select distinct(vac_periodo) 
+    from pla_vac_vacacion
+   where VAC_CODCIA  	= '001'
+     and VAC_PERIODO  = '2016-2017'
+
+
+	--// periodos de vacaciones por empleado # YA
+	
+    --// Reporte Plan de Vacaciones
+
+    pr_planv    
+
+    --// Vacaciones pendientes
+
+    --// Vacaciones gozadas
+
+    --// asistencia planilla dietas # YA
+
+    --// Actualizacion de Complemento Pacto
+
+	--// Actualiza estructura organizatival # YA
+
+    --// Actualiza Paso Salarial
+
+    --// Actualiza Seguro Médico
+
+    CREATE OR REPLACE PROCEDURE RHEPQ.SP_ACTUALIZA_SEG_MED (
+    pOpcion IN NUMBER,
+    pValor IN VARCHAR2,
+    pCursor OUT SYS_REFCURSOR
+) AS
+    v_filas_afectadas NUMBER;
+BEGIN
+    SAVEPOINT transact;
+     
+    IF pOpcion = 1 THEN
+        UPDATE PLA_DPL_DATOSPLANILLA
+			    SET DPL_PRIMAVEHI = pValor
+			  WHERE DPL_PRIMAVEHI > 182;
+			 
+		 -- Guardar el número de filas afectadas en la variable
+        v_filas_afectadas := SQL%ROWCOUNT;
+			
+	 	-- Comprobar si se afectaron filas antes de hacer COMMIT y abrir el cursor	
+	 	IF v_filas_afectadas > 0 THEN
+        
+	   		COMMIT;
+	   	
+	 		OPEN pCursor FOR
+	            SELECT 'Actualizado con éxito.' AS mensaje FROM DUAL;
+        
+           END IF;
+    END IF;
+   
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK TO transact;
+            RAISE;
+    END SP_ACTUALIZA_SEG_MED;
+
+    /*commit;
+:header.nombre_modulo := 'Unidad de Informatica';
+:header.nombre_forma  := 'pm_comp_pacto';
+:header.descripcion   := 'Actualización Ingresos Fijos';
+execute_trigger('asigna_var');*/
+
+if :respuesta = 'S'
+   then message ('Espere un Momento. Generando Seguro Médico....');
+        synchronize;
+        SUMA_COMPLE;
+        --genera_planilla;
+        if not form_failure
+           then :system.message_level := 5;
+                commit;
+                :system.message_level := 0;
+                message ('Proceso Terminado con Exito');
+           else message ('Precaucion. Seguro Médico no pudo Generarse');
+        end if;
+        exit_form (no_validate);
+   else exit_form(no_validate);
+end if;
+
+----------------------------
+
+PROCEDURE SUMA_COMPLE IS
+
+BEGIN
+
+ 
+ UPDATE PLA_DPL_DATOSPLANILLA
+    SET DPL_PRIMAVEHI = :VALOR
+  WHERE DPL_PRIMAVEHI > 182;
+    
+   
+     
+:complemento.mensaje := 'Procesando Seguro Médico '||to_char(:valor,'000');
+
+COMMIT;
+
+END;
+
+
+
+    --// Generación Nomina de Emergencia
+
+    --// Generación Paso Salarial
+        --# Nomina Paso Salarial
+        --# Reporte Paso Salarial
+
+    --- ##### // Generación de Nómina
+
+    -- # Pregunta
+	--// Actualiza detalle estructura organizatival # YA
+
 
 ------------------------------------------------------------------------ FIN DE #### MODULO DE ADMINISTRACION DE SALARIOS
    

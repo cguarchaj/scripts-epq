@@ -15695,6 +15695,125 @@ END SP_PLA_TPL_TIPO_PLANILLA;
 
 
 
+--- ############ SUBMODULO DE CONSULTAS
+
+
+
+--- ############ SUBMODULO DE PROCESOS
+
+    -----------------------------------------------------------
+    
+    --// Generacion plan de vacaciones
+
+    CREATE OR REPLACE PROCEDURE RHEPQ.SP_PLA_VAC_VACACION (
+    pOpcion IN NUMBER,
+    pCompania IN VARCHAR2,
+    pPeriodo IN VARCHAR2,
+    pIngreso IN VARCHAR2,
+    pSalario IN VARCHAR2,    
+    pCursor OUT SYS_REFCURSOR
+) AS
+    vContador NUMBER;
+    v_empleado pla_emp_empleado%ROWTYPE;
+    dias_pendientes NUMBER;
+    periodo_anterior VARCHAR2(9);
+    dias_vacacion NUMBER;
+    dias_cscs NUMBER;
+BEGIN
+    SAVEPOINT transact;
+   
+    IF pOpcion = 1 THEN
+        SELECT COUNT(DISTINCT vac_periodo) INTO vContador
+        FROM pla_vac_vacacion
+        WHERE VAC_CODCIA = pCompania AND VAC_PERIODO = pPeriodo;
+
+        -- Si hay registros, abrimos el cursor con los datos
+        IF vContador > 0 THEN
+            OPEN pCursor FOR
+                SELECT pPeriodo AS PERIODO FROM DUAL;
+        ELSE
+            -- Si no hay registros, abrimos el cursor con un mensaje desde DUAL
+            OPEN pCursor FOR
+                SELECT 'No ha sido generado' AS mensaje, NULL AS PERIODO FROM DUAL;
+        END IF;
+       
+   	END IF;
+
+    IF pOpcion = 2 THEN
+        --* Selecciona a los Empleados Registrados en el Sistema con JOINs optimizados
+        FOR v_empleado IN (
+            SELECT e.emp_codcia, e.emp_codigo, e.emp_fecha_ingreso,
+                   d.dpl_tipo_salario,
+                   TO_NUMBER(SUBSTR(pPeriodo, 6, 4)) - TO_NUMBER(TO_CHAR(e.emp_fecha_ingreso, 'YYYY')) + 1 AS anio_servicio,
+                   TO_DATE(TO_CHAR(e.emp_fecha_ingreso, 'DD/MM/') || SUBSTR(pPeriodo, 1, 4), 'DD/MM/YYYY') AS inicio,
+                   TO_DATE(TO_CHAR(e.emp_fecha_ingreso, 'DD/MM/') || SUBSTR(pPeriodo, 6, 4), 'DD/MM/YYYY') - 1 AS final
+            FROM pla_emp_empleado e
+            JOIN pla_dpl_datosplanilla d ON e.emp_codcia = d.dpl_codcia AND e.emp_codigo = d.dpl_codemp
+            WHERE e.emp_codcia = pCompania
+              AND e.emp_estado IN ('A', 'S')
+              AND d.dpl_tipo_salario = pSalario
+              AND e.emp_fecha_retiro IS NULL
+              AND e.emp_fecha_ingreso < TO_DATE('01/01/' || TO_CHAR(TO_NUMBER(SUBSTR(pPeriodo, 1, 4)) + 1), 'DD/MM/YYYY')
+        ) LOOP
+            --* Cálculos de días no gozados y días de vacación
+            SELECT TO_CHAR(TO_NUMBER(SUBSTR(pPeriodo, 1, 4)) - 1) || '-' || TO_CHAR(TO_NUMBER(SUBSTR(pPeriodo, 6, 4)) - 1)
+            INTO periodo_anterior
+            FROM dual;
+
+            SELECT NVL(SUM(vac_periodo_ant + vac_dias - vac_gozados), 0)
+            INTO dias_pendientes
+            FROM pla_vac_vacacion
+            WHERE vac_codcia = pCompania
+              AND vac_codemp = v_empleado.emp_codigo
+              AND vac_periodo = periodo_anterior;
+
+            SELECT pva_dias_vac, pva_dias_cscs
+            INTO dias_vacacion, dias_cscs
+            FROM pla_pva_param_vacacion
+            WHERE pva_codcia = pCompania
+              AND pva_tipo = v_empleado.dpl_tipo_salario
+              AND pva_codmin <= v_empleado.anio_servicio
+              AND pva_codmax >= v_empleado.anio_servicio;
+
+            --* Inserto Plan de Vacación Para Cada Empleado
+            INSERT INTO pla_vac_vacacion
+                (vac_codcia, vac_codemp, vac_periodo, vac_desde, vac_hasta, vac_periodo_ant, vac_dias, vac_gozados, vac_codtig, vac_cscs)
+            VALUES
+                (pCompania, v_empleado.emp_codigo, pPeriodo, v_empleado.inicio, v_empleado.final, dias_pendientes, dias_vacacion, 0, pIngreso, dias_cscs);
+        END LOOP;
+        
+   		COMMIT;
+   	
+ 		OPEN pCursor FOR
+            SELECT 'Generado con éxito.' AS mensaje, pPeriodo AS PERIODO FROM DUAL;
+        
+    END IF;
+   
+   IF pOpcion = 3 THEN
+        -- Salario label
+        OPEN pCursor FOR
+	        SELECT 'M' AS value, 'Mensual' AS label FROM DUAL
+	        UNION ALL
+	        SELECT 'C' AS value, 'Catorcenal' AS label FROM DUAL
+	        UNION ALL
+	        SELECT 'Q' AS value, 'Quincenal' AS label FROM DUAL
+	        UNION ALL
+	        SELECT 'S' AS value, 'Semanal' AS label FROM DUAL;
+   	END IF;
+   
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK TO transact;
+            RAISE;
+    END SP_PLA_VAC_VACACION; 
+
+    -----------------------------------------------------------
+    
+    --// Reporte Plan de Vacaciones
+    
+
+
+
 ----------------------------------------
 
 --######################## AQUI TERMINA EL MODULO ADMINISTRACION DE SALARIOS ########################
