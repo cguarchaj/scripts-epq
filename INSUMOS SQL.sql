@@ -696,7 +696,7 @@ SELECT ROWID,TDC_CODCIA,TDC_CODIGO,TDC_DESCRIPCION,TDC_CTA_CONTABLE,TDC_CTA_CONT
 
 	--// consulta de cuotas descuentos ciclicos # YA
     
-    --// Generacion plan de vacaciones
+    --// Generacion plan de vacaciones # Sí
 
     Mensual M
 Catorcenal C
@@ -857,13 +857,33 @@ SELECT * FROM RHEPQ.PLA_TIG_TIPO_INGRESO
 
 	--// periodos de vacaciones por empleado # YA
 	
-    --// Reporte Plan de Vacaciones
+    --// Reporte Plan de Vacaciones # Sí
 
-    pr_planv    
+SELECT EMP_CODIGO, EMP_NOMBRE_ISSS,
+               DVA_DESDE, DVA_HASTA, UNI_NOMBRE,
+               UNI_CODIGO
+   FROM PLA_EMP_EMPLEADO,
+               PLA_DVA_DET_VACACION,
+               PLA_DPL_DATOSPLANILLA,
+               PLA_PLZ_PLAZA, PLA_UNI_UNIDAD
+ WHERE EMP_CODCIA = :compania
+       AND EMP_CODCIA = DVA_CODCIA
+       AND EMP_CODIGO = DVA_CODEMP
+       AND DVA_DESDE BETWEEN :fecha_i AND :fecha_f
+       AND EMP_AREA = DECODE(substr(:AREA,1,1), 'T',
+                                      EMP_AREA, substr(:AREA,1,1))
+       AND EMP_CODCIA = DPL_CODCIA
+       AND EMP_CODIGO = DPL_CODEMP
+       AND EMP_ESTADO = 'A'
+       AND PLZ_CODCIA = DPL_CODCIA
+       AND PLZ_CODIGO = DPL_CODPLZ
+       AND UNI_CODCIA = PLZ_CODCIA
+       AND UNI_CODIGO = PLZ_CODUNI
+ ORDER BY EMP_NOMBRE_ISSS
 
-    --// Vacaciones pendientes
+    --// Vacaciones pendientes # Sí
 
-    --// Vacaciones gozadas
+    --// Vacaciones gozadas # Sí
 
     --// asistencia planilla dietas # YA
 
