@@ -740,256 +740,257 @@ SELECT ROWID,TDC_CODCIA,TDC_CODIGO,TDC_DESCRIPCION,TDC_CTA_CONTABLE,TDC_CTA_CONT
 
     --// Autorizacion horas extras
 
-    SELECT * FROMPLA_EXT_EXTRAORDIN
+
+    SELECT ext_autorizacion FROM RHEPQ.PLA_EXT_EXTRAORDIN
 
     SELECT * FROM RHEPQ.PLA_EXT_EXTRAORDIN
-    WHERE EXT_FECHA_INI BETWEEN :B0.FECHA_INI AND :B0.FECHA_FIN
-    and ext_codemp = :B0.emp_codigo
+    WHERE EXT_FECHA_INI BETWEEN TO_DATE('2010-10-10', 'YYYY-MM-DD')  AND TO_DATE('2024-10-10', 'YYYY-MM-DD') 
+    and ext_codemp = 2193
     and ext_marca in ('S')
     ORDER BY ext_fecha_ini, ext_codthe
+    
+    
+    
+    B1 POSTQUERY
 
-    Declare
-      direccion_logo  varchar2(80) := '..\IMAGENES\';
-      nombre_logo     varchar2(80);
+Declare alerta ALERT := find_alert('ERROR');
+   desc_error VARCHAR2(80);
+   dummy number;
 Begin
-   DEFAULT_VALUE ('001', 'GLOBAL.COMPANIA');
-       Select cia_des, user, sysdate
-         into :header.nombre_cia,
-              :header.usuario,
-              :header.fecha_sys
-         from side_gen_cia
-        where cia_codigo = :GLOBAL.COMPANIA;
-   :header.compania      := :GLOBAL.COMPANIA;
-   :SYSTEM.message_level := '25';
-   nombre_logo := 'C_'||:header.compania||'.BMP';
-   READ_IMAGE_FILE(direccion_logo||nombre_logo, 'BMP', 'HEADER.logo');
-   If not form_success
-      Then bell;
-           message('Logotipo de Empresa NO Existe');
-           synchronize;
-   End if;
-   :SYSTEM.message_level := '0';
-   Exception
-      When no_data_found then
-        bell;
-        Set_Alert_Property('ERROR',Alert_Message_Text,
-        'No se ha definido Empresa para trabajar. Seleccione Empresa por favor');
-        if show_alert('ERROR') = alert_button1
-           then exit_form (no_validate);
-        end if;
+Select the_nombre,
+       decode(:b1.ext_tipo, 'E',
+              (the_valor_extra + (nvl(the_nocturnidad,0)*2)) * 100,
+                            'N',
+              (the_valor + nvl(the_nocturnidad,0)) * 100)
+Into  :b1.desc_the, :b1.porcentaje
+from pla_the_tipohoraex
+where the_codcia = :header.compania
+  and the_codigo = :b1.ext_codthe;
+Exception
+When No_Data_Found then
+    desc_error := 'Inconsistencia con Tipo de Hora Extra';
+    set_alert_property(alerta, alert_message_text, desc_error);
+    dummy := show_alert('ERROR');
+    if dummy = alert_button1 then
+       raise form_trigger_failure;
+    end if;
 End;
-
-
-
-
-
--------------------------
-
-Procedure plan_vacacion
-                    (compania      in       VARCHAR2,
-                     periodo       in       VARCHAR2,
-                     ingreso       in       VARCHAR2,
-                     salario       in       VARCHAR2) is
-   --*
-   --* Selecciona a los Empleados Registrados en el Sistema
-   --*
-   Cursor c_empleado is
-      Select emp_codcia, emp_codigo, emp_fecha_ingreso,
-             dpl_tipo_salario,
-             to_number(substr(periodo,6,4)) -
-             to_number(to_char(emp_fecha_ingreso,'YYYY')) + 1 anio_servicio,
-             to_date(to_char(emp_fecha_ingreso,'DD/MM/')||substr(periodo,1,4),'DD/MM/YYYY') inicio,
-             to_date(to_char(emp_fecha_ingreso,'DD/MM/')||substr(periodo,6,4),'DD/MM/YYYY')-1 final
-        from pla_emp_empleado, pla_dpl_datosplanilla
-       where emp_codcia 			= compania
-         and emp_estado 			in ('A', 'S')
-         and emp_codcia 			= dpl_codcia
-         and emp_codigo 			= dpl_codemp
-         and dpl_tipo_salario = salario
-         and emp_fecha_retiro is null
-         and emp_fecha_ingreso < to_date('01/01/'||
-             to_char(to_number(substr(periodo,1,4)+1),'0000'),'DD/MM/YYYY');
---         and to_date('31/12/'||
---             to_char(to_number(substr(periodo,6,4)),'0000'),'DD/MM/YYYY');
---         and emp_fecha_ingreso < to_date('01/01/'||substr(periodo,1,4),'DD/MM/YYYY');
-   v_empleado    c_empleado%ROWTYPE;
-   dias_pendientes  number;
-   periodo_anterior VARCHAR2(9);
-   dias_vacacion    number;
-   dias_cscs        number;
-Begin
-   For v_empleado in c_empleado
-      Loop
-      --	message('ya entro al loop');
-      --	pause;
-        dias_pendientes := 0;
-        dias_vacacion := 0;
-        --*
-        --* Obtengo los Dias No Gozados del Periodo Anterior 
-        --*
-        Begin
-         Select to_char(to_number(substr(periodo, 1,4)) - 1)||
-                '-'||
-                to_char(to_number(substr(periodo, 6,4)) - 1)
-           Into periodo_anterior
-           From dual;
-         Select (nvl(vac_periodo_ant,0) + nvl(vac_dias,0)) - nvl(vac_gozados,0)
-           Into dias_pendientes
-           From pla_vac_vacacion
-          Where vac_codcia  = compania
-            and vac_codemp  = v_empleado.emp_codigo
-            and vac_periodo = periodo_anterior;
-         Exception When NO_DATA_FOUND
-             Then dias_pendientes := 0;
-        End;
-        --*
-        --* Selecciono Dias De Vacación que corresponden al Empleado
-        --*
-        Begin
-            Select pva_dias_vac, pva_dias_cscs
-              Into dias_vacacion, dias_cscs
-              From pla_pva_param_vacacion
-             Where pva_codcia = compania
-               and pva_tipo   = v_empleado.dpl_tipo_salario
-               and pva_codmin <= v_empleado.anio_servicio
-               and pva_codmax >= v_empleado.anio_servicio ;
-           Exception When NO_DATA_FOUND
-             Then dias_vacacion := 0;
-        End; 
-        --*
-        --* Inserto Plan de Vacación Para Cada Empleado
-        --* 
-           Insert into pla_vac_vacacion
-              (vac_codcia,  vac_codemp, 
-               vac_periodo, vac_desde, 
-               vac_hasta,   vac_periodo_ant,
-               vac_dias,    vac_gozados,
-               vac_codtig, vac_cscs)
-             Values (compania, v_empleado.emp_codigo,
-                     periodo, v_empleado.inicio,
-                     v_empleado.final, dias_pendientes,
-                     dias_vacacion, 0,
-                     ingreso, dias_cscs);         
-      End loop;
-End;
-
-SELECT * FROM RHEPQ.pla_vac_vacacion ORDER BY VAC_PERIODO DESC
-
-SELECT * FROM RHEPQ.PLA_TIG_TIPO_INGRESO
-
-  select distinct(vac_periodo) 
-    from pla_vac_vacacion
-   where VAC_CODCIA  	= '001'
-     and VAC_PERIODO  = '2016-2017'
-
-
-	--// periodos de vacaciones por empleado # YA
-	
-    --// Reporte Plan de Vacaciones
-
-    pr_planv    
-
-    --// Vacaciones pendientes
-
-    --// Vacaciones gozadas
-
-    --// asistencia planilla dietas # YA
-
-    --// Actualizacion de Complemento Pacto
-
-	--// Actualiza estructura organizatival # YA
-
-    --// Actualiza Paso Salarial
-
-    --// Actualiza Seguro Médico
-
-    CREATE OR REPLACE PROCEDURE RHEPQ.SP_ACTUALIZA_SEG_MED (
-    pOpcion IN NUMBER,
-    pValor IN VARCHAR2,
-    pCursor OUT SYS_REFCURSOR
-) AS
-    v_filas_afectadas NUMBER;
-BEGIN
-    SAVEPOINT transact;
-     
-    IF pOpcion = 1 THEN
-        UPDATE PLA_DPL_DATOSPLANILLA
-			    SET DPL_PRIMAVEHI = pValor
-			  WHERE DPL_PRIMAVEHI > 182;
-			 
-		 -- Guardar el número de filas afectadas en la variable
-        v_filas_afectadas := SQL%ROWCOUNT;
-			
-	 	-- Comprobar si se afectaron filas antes de hacer COMMIT y abrir el cursor	
-	 	IF v_filas_afectadas > 0 THEN
-        
-	   		COMMIT;
-	   	
-	 		OPEN pCursor FOR
-	            SELECT 'Actualizado con éxito.' AS mensaje FROM DUAL;
-        
-           END IF;
-    END IF;
-   
-    EXCEPTION
-        WHEN OTHERS THEN
-            ROLLBACK TO transact;
-            RAISE;
-    END SP_ACTUALIZA_SEG_MED;
-
-    /*commit;
-:header.nombre_modulo := 'Unidad de Informatica';
-:header.nombre_forma  := 'pm_comp_pacto';
-:header.descripcion   := 'Actualización Ingresos Fijos';
-execute_trigger('asigna_var');*/
-
-if :respuesta = 'S'
-   then message ('Espere un Momento. Generando Seguro Médico....');
-        synchronize;
-        SUMA_COMPLE;
-        --genera_planilla;
-        if not form_failure
-           then :system.message_level := 5;
-                commit;
-                :system.message_level := 0;
-                message ('Proceso Terminado con Exito');
-           else message ('Precaucion. Seguro Médico no pudo Generarse');
-        end if;
-        exit_form (no_validate);
-   else exit_form(no_validate);
+if :ext_autorizacion is not null then
+	:dummy := 'S';
+else
+	:dummy := 'N';
 end if;
 
-----------------------------
+-----
 
-PROCEDURE SUMA_COMPLE IS
+B1 POSTQUERY
 
+Declare alerta ALERT := find_alert('ERROR');
+   desc_error VARCHAR2(80);
+   dummy number;
+Begin
+Select the_nombre,
+       decode(:b1.ext_tipo, 'E',
+              (the_valor_extra + (nvl(the_nocturnidad,0)*2)) * 100,
+                            'N',
+              (the_valor + nvl(the_nocturnidad,0)) * 100)
+Into  :b1.desc_the, :b1.porcentaje
+from pla_the_tipohoraex
+where the_codcia = :header.compania
+  and the_codigo = :b1.ext_codthe;
+Exception
+When No_Data_Found then
+    desc_error := 'Inconsistencia con Tipo de Hora Extra';
+    set_alert_property(alerta, alert_message_text, desc_error);
+    dummy := show_alert('ERROR');
+    if dummy = alert_button1 then
+       raise form_trigger_failure;
+    end if;
+End;
+if :ext_autorizacion is not null then
+	:dummy := 'S';
+else
+	:dummy := 'N';
+end if;
+
+
+----------------
+
+B0 POSTQUERY 
+
+Select dpl_salario, dpl_horas_dia
+  into :b0.dpl_salario, :b0.dpl_horas_dia
+  from pla_dpl_datosplanilla
+ where dpl_codcia = :b0.emp_codcia
+   and dpl_codemp = :b0.emp_codigo;
+Exception
+   When no_data_found then null;
+
+
+--- 
+
+CREATE OR REPLACE PROCEDURE RHEPQ.SP_UPDATE_EXTRA_HOURS (
+    pOpcion IN NUMBER,
+    pCompania IN VARCHAR2,
+    pCodigoExtra IN VARCHAR2,
+    pTipoExtra IN CHAR,
+    pAutorizacion IN VARCHAR2,
+    pCursor OUT SYS_REFCURSOR
+) AS
+    v_desc_error VARCHAR2(80);
+    v_nombre VARCHAR2(100);
+    v_porcentaje NUMBER;
+    v_valor_extra NUMBER;
+    v_valor NUMBER;
+    v_nocturnidad NUMBER;
+    v_dummy VARCHAR2(1);
 BEGIN
 
- 
- UPDATE PLA_DPL_DATOSPLANILLA
-    SET DPL_PRIMAVEHI = :VALOR
-  WHERE DPL_PRIMAVEHI > 182;
-    
-   
-     
-:complemento.mensaje := 'Procesando Seguro Médico '||to_char(:valor,'000');
+IF pOpcion = 1 THEN
+    -- Uniendo datos necesarios desde las tablas relacionadas
+    SELECT the_nombre,
+           DECODE(pTipoExtra, 'E',
+                  (the_valor_extra + (NVL(the_nocturnidad, 0) * 2)) * 100,
+                  'N',
+                  (the_valor + NVL(the_nocturnidad, 0)) * 100)
+    INTO v_nombre, v_porcentaje
+    FROM pla_the_tipohoraex
+    WHERE the_codcia = pCompania
+      AND the_codigo = pCodigoExtra;
 
-COMMIT;
+    -- Configurar el valor de retorno en el cursor de salida
+    OPEN pCursor FOR
+    SELECT v_nombre AS desc_the, v_porcentaje AS porcentaje,
+           CASE
+               WHEN pAutorizacion IS NOT NULL THEN 'S'
+               ELSE 'N'
+           END AS dummy
+    FROM DUAL;
+END IF;
 
-END;
+EXCEPTION
+    -- Manejo de excepción cuando no hay datos encontrados
+    WHEN NO_DATA_FOUND THEN
+        v_desc_error := 'Inconsistencia con Tipo de Hora Extra';
+        OPEN pCursor FOR
+        SELECT v_desc_error AS mensaje FROM DUAL;
+END SP_UPDATE_EXTRA_HOURS;
 
+--------------------------------------------
+    --// Autorizacion global de horas extras 
 
+    --// Registro tiempo no trabajado
 
-    --// Generación Nomina de Emergencia
+    --// Autorizacion tiempo no trabajado
 
-    --// Generación Paso Salarial
-        --# Nomina Paso Salarial
-        --# Reporte Paso Salarial
+    --// Otros ingresos
 
-    --- ##### // Generación de Nómina
+    --// Otros Descuentos
 
-    -- # Pregunta
-	--// Actualiza detalle estructura organizatival # YA
+    --// Aplicacion automatica Otros descuentos
+
+    --// Retencion de ISR x Empleado
+
+    --// Descuentos judiciales x empleado
+
+    --// Codigos de Observcacion
+
+    --// varios
+
+    --// Generacion nomina
+
+    --// Generacion nomina bono compensatorio
+
+    --// Generacion nomina 10% y paso salarial
+
+    --// Generacion bono orden festivo nav
+
+    --// Generacion nominas eventuales
+
+    --// Ingreso nominas adicionales
+
+    --//  Paso de gastos oftalmologicos
+
+    --// Revision nomina
+
+    --// Revision nomina eventual
+
+    --// Revision nomina (contrato)
+
+    --// Autorizacion Nomina
+
+    --// Desautorizar nomina
+
+    --// Bono escolar hijos
+
+    --// Bono escolar empleado
+
+    --// Dieta
+
+    --// Aguinaldos 011 y 022
+
+    --// Utilidades
+
+    --// Complemento Horas Extras
+
+    --// Bono 14
+
+    --// Bono 14 Renglon 022
+
+    --// Generacion codigos observacion
+
+    --// Bono vacacional
+
+    --// Personal por Contrato
+
+    --// Ayuda economica 022
+
+    --// Personal por contrato Renglon 029 y grupo 18
+
+    --// Personal del renglon 022
+
+    --// Servicios extraordinarios
+
+    --// Becas
+
+    --// Generacion nomina bono 14
+
+    --// Generacion gastos oftalmologicos
+
+    --// Pasivo laboral
+
+    --// Reversion Parcial planillas
+
+    --// Reversion total planillas
+
+    Declare alerta ALERT := find_alert('ERROR');
+   desc_error VARCHAR2(80);
+   dummy number;
+Begin
+Select the_nombre,
+       decode(:b1.ext_tipo, 'E',
+              (the_valor_extra + (nvl(the_nocturnidad,0)*2)) * 100,
+                            'N',
+              (the_valor + nvl(the_nocturnidad,0)) * 100)
+Into  :b1.desc_the, :b1.porcentaje
+from pla_the_tipohoraex
+where the_codcia = :header.compania
+  and the_codigo = :b1.ext_codthe;
+Exception
+When No_Data_Found then
+    desc_error := 'Inconsistencia con Tipo de Hora Extra';
+    set_alert_property(alerta, alert_message_text, desc_error);
+    dummy := show_alert('ERROR');
+    if dummy = alert_button1 then
+       raise form_trigger_failure;
+    end if;
+End;
+if :ext_autorizacion is not null then
+	:dummy := 'S';
+else
+	:dummy := 'N';
+end if;
+
 
 
 ------------------------------------------------------------------------ FIN DE #### MODULO DE ADMINISTRACION DE SALARIOS
