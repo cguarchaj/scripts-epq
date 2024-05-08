@@ -696,7 +696,7 @@ SELECT ROWID,TDC_CODCIA,TDC_CODIGO,TDC_DESCRIPCION,TDC_CTA_CONTABLE,TDC_CTA_CONT
 
 	--// consulta de cuotas descuentos ciclicos # YA
     
-    --// Generacion plan de vacaciones # SI
+    --// Generacion plan de vacaciones # Sí # SI
 
     Mensual M
     Catorcenal C
@@ -783,215 +783,213 @@ End;
 
 
 
---------------------------------------
--- Postquery
-Select dpl_salario, dpl_horas_dia
-  into :b0.dpl_salario, :b0.dpl_horas_dia
-  from pla_dpl_datosplanilla
- where dpl_codcia = :b0.emp_codcia
-   and dpl_codemp = :b0.emp_codigo;
-Exception
-   When no_data_found then null;
+-------------------------
+
+Procedure plan_vacacion
+                    (compania      in       VARCHAR2,
+                     periodo       in       VARCHAR2,
+                     ingreso       in       VARCHAR2,
+                     salario       in       VARCHAR2) is
+   --*
+   --* Selecciona a los Empleados Registrados en el Sistema
+   --*
+   Cursor c_empleado is
+      Select emp_codcia, emp_codigo, emp_fecha_ingreso,
+             dpl_tipo_salario,
+             to_number(substr(periodo,6,4)) -
+             to_number(to_char(emp_fecha_ingreso,'YYYY')) + 1 anio_servicio,
+             to_date(to_char(emp_fecha_ingreso,'DD/MM/')||substr(periodo,1,4),'DD/MM/YYYY') inicio,
+             to_date(to_char(emp_fecha_ingreso,'DD/MM/')||substr(periodo,6,4),'DD/MM/YYYY')-1 final
+        from pla_emp_empleado, pla_dpl_datosplanilla
+       where emp_codcia 			= compania
+         and emp_estado 			in ('A', 'S')
+         and emp_codcia 			= dpl_codcia
+         and emp_codigo 			= dpl_codemp
+         and dpl_tipo_salario = salario
+         and emp_fecha_retiro is null
+         and emp_fecha_ingreso < to_date('01/01/'||
+             to_char(to_number(substr(periodo,1,4)+1),'0000'),'DD/MM/YYYY');
+--         and to_date('31/12/'||
+--             to_char(to_number(substr(periodo,6,4)),'0000'),'DD/MM/YYYY');
+--         and emp_fecha_ingreso < to_date('01/01/'||substr(periodo,1,4),'DD/MM/YYYY');
+   v_empleado    c_empleado%ROWTYPE;
+   dias_pendientes  number;
+   periodo_anterior VARCHAR2(9);
+   dias_vacacion    number;
+   dias_cscs        number;
+Begin
+   For v_empleado in c_empleado
+      Loop
+      --	message('ya entro al loop');
+      --	pause;
+        dias_pendientes := 0;
+        dias_vacacion := 0;
+        --*
+        --* Obtengo los Dias No Gozados del Periodo Anterior 
+        --*
+        Begin
+         Select to_char(to_number(substr(periodo, 1,4)) - 1)||
+                '-'||
+                to_char(to_number(substr(periodo, 6,4)) - 1)
+           Into periodo_anterior
+           From dual;
+         Select (nvl(vac_periodo_ant,0) + nvl(vac_dias,0)) - nvl(vac_gozados,0)
+           Into dias_pendientes
+           From pla_vac_vacacion
+          Where vac_codcia  = compania
+            and vac_codemp  = v_empleado.emp_codigo
+            and vac_periodo = periodo_anterior;
+         Exception When NO_DATA_FOUND
+             Then dias_pendientes := 0;
+        End;
+        --*
+        --* Selecciono Dias De Vacación que corresponden al Empleado
+        --*
+        Begin
+            Select pva_dias_vac, pva_dias_cscs
+              Into dias_vacacion, dias_cscs
+              From pla_pva_param_vacacion
+             Where pva_codcia = compania
+               and pva_tipo   = v_empleado.dpl_tipo_salario
+               and pva_codmin <= v_empleado.anio_servicio
+               and pva_codmax >= v_empleado.anio_servicio ;
+           Exception When NO_DATA_FOUND
+             Then dias_vacacion := 0;
+        End; 
+        --*
+        --* Inserto Plan de Vacación Para Cada Empleado
+        --* 
+           Insert into pla_vac_vacacion
+              (vac_codcia,  vac_codemp, 
+               vac_periodo, vac_desde, 
+               vac_hasta,   vac_periodo_ant,
+               vac_dias,    vac_gozados,
+               vac_codtig, vac_cscs)
+             Values (compania, v_empleado.emp_codigo,
+                     periodo, v_empleado.inicio,
+                     v_empleado.final, dias_pendientes,
+                     dias_vacacion, 0,
+                     ingreso, dias_cscs);         
+      End loop;
+End;
+
+SELECT * FROM RHEPQ.pla_vac_vacacion ORDER BY VAC_PERIODO DESC
+
+SELECT * FROM RHEPQ.PLA_TIG_TIPO_INGRESO
+
+  select distinct(vac_periodo) 
+    from pla_vac_vacacion
+   where VAC_CODCIA  	= '001'
+     and VAC_PERIODO  = '2016-2017'
 
 
-    --// Autorizacion global de horas extras
+	--// periodos de vacaciones por empleado # YA
+	
+    --// Reporte Plan de Vacaciones
 
-    --// Registro tiempo no trabajado
+    pr_planv    
 
-    --// Otros ingresos
+    --// Vacaciones pendientes
 
-    --// Otros descuentos
+    --// Vacaciones gozadas
 
-    --// Aplicacion automatica otros descuentos
+    --// asistencia planilla dietas # YA
 
-    --// Retencion de isr x Empleado
+    --// Actualizacion de Complemento Pacto
 
-    --// Descuentos judiciales x Empleado
+	--// Actualiza estructura organizatival # YA
 
-    --// Codigos de observacion
+    --// Actualiza Paso Salarial
 
-    --// Varios
+    --// Actualiza Seguro Médico
+
+    CREATE OR REPLACE PROCEDURE RHEPQ.SP_ACTUALIZA_SEG_MED (
+    pOpcion IN NUMBER,
+    pValor IN VARCHAR2,
+    pCursor OUT SYS_REFCURSOR
+) AS
+    v_filas_afectadas NUMBER;
+BEGIN
+    SAVEPOINT transact;
+     
+    IF pOpcion = 1 THEN
+        UPDATE PLA_DPL_DATOSPLANILLA
+			    SET DPL_PRIMAVEHI = pValor
+			  WHERE DPL_PRIMAVEHI > 182;
+			 
+		 -- Guardar el número de filas afectadas en la variable
+        v_filas_afectadas := SQL%ROWCOUNT;
+			
+	 	-- Comprobar si se afectaron filas antes de hacer COMMIT y abrir el cursor	
+	 	IF v_filas_afectadas > 0 THEN
         
-        --// Descuentos por empleado
-
-        --// Personal por contrato  
-
-        --// Descuentos acumulados por empleado
-
-        --// Descuentos por empleado y aporte patronal
-
-        --// Acumulados de aporte patronal y empleado
-
-        --// Otros descuentos
-
-        --// Otros ingresos
-
-        --// Ingresos por empleado
-
-        --// Ingresos por centro de costo
-
-        --// Acta de despido o renuncia
-
-        --// Promedio mensual aguinaldo general
-
-        --// Promedio aguinaldo especifica
-
-        --// comparacion devengados
-
-        --// Tiempo no trabajado
-
-        --// Reporte de horas extras por empleado
-
-        --// Extras por empleado y fecha
-
-        --// extras por empleado y tipo ext.
-
-        --// control de llegadas tarde
-
-        --// Promedio de comisiones para vacaciones
-
-        --// Promedio de comisiones para ventas
-
-        --// Firma de pagos de prestamos
-
-        --// Carta prestamos de empleados
-
-        --// Historico salarios
-
-        --// Historico salarios por unidad
-
-        --// Reporte integracion contable
-
-        --// resumen partida contable
-
-        --// verificacion de entradas y salidas
-
-        --// Provision mensual de gastos por unidad
-
-        --// Provision mensual de gastos por C. COSTO
-
-        --// pROVISION ACUMULADA (sOLO ACTIVOS)
-
-        --// Ingresos y prestaciones por empleado
-
-        --// Ingresos y prestaciones por empleado (file)
-
-    --// Generacion de nomina
-
-    --// Revision nomina eventual
-
-    --// Revision nomina (contrato)
-
-    --// Autorizacion nomina
-
-    --// Desautorizar nomina
-
-    --// Bono escolar hijos
-
-    --// bono escolar empleado
-
-    --// Dietas
-
-        --// Nomina de Dietas
-
-        --// Generacion nomina dietas
-
-    --// Aguinaldo 011 y 022
-
-        --// Generacion de Tabla
-
-        --// Consulta de Aguinaldo por partida
-
-        --// Generacion de nomina
-
-    --// Utilidades
-
-        --// Generacion de Tabla
-
-        --// Consulta de utilidades por partida
-
-        --// Ingreso de utilidades primer registro
-
-        --// Generacion de nomina
-
-    --// Complemento Horas extras
-
-    --// Bono 14
-
-        --// Generacion de Tabla anterios
-
-        --// Generacion de Tabla actual
-
-        --// Consulta de Bono 14 por partida
-
-        --// Ingreso de bono 14 Primer registro
-
-        --// Generacion de nomina
-
-    --// Bono 14 Renglon 022
-
-        --// Generacion de Tablas
-
-        --// Consulta bono 14
-
-        --// Generacion nomina
-
-    --// Generacion codigos observacion
-
-    --// Bono vacacional
-
-    --// Personal por contrato
-
-    --// Ayuda economica 022
-
-        --// Generacion nomina
-
-        --// Reporte nomina
-
-    --// Personal por contrato renglon 029 y Grupo 18
-
-        --// Generacion de nomina
-
-        --// Reporte de nomina
-
-        --// Resumen de nomina
-
-        --// Deposito de nomina
-
-    --// Personal del Renglon 022
-
-        --// Generacion de nomina
-
-        --// Reporte de nomina
-
-        --// Resumen de nomina contrato
-
-        --// Resumen de nomina profesional
-
-        --// Deposito de nomina
-
-    --// Servicios extraordinarios
-
-    --// Becas
-
-    --// Generacion nomina bono 14
-
-    --// Generacion gastos oftalmologicos
-
-    --// Pasivo laboral
-
-    --// Reversion parcial planillas
-
-    --// Reversion total planillas
-
-
-
-
-
-
-
-
-
+	   		COMMIT;
+	   	
+	 		OPEN pCursor FOR
+	            SELECT 'Actualizado con éxito.' AS mensaje FROM DUAL;
+        
+           END IF;
+    END IF;
+   
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK TO transact;
+            RAISE;
+    END SP_ACTUALIZA_SEG_MED;
+
+    /*commit;
+:header.nombre_modulo := 'Unidad de Informatica';
+:header.nombre_forma  := 'pm_comp_pacto';
+:header.descripcion   := 'Actualización Ingresos Fijos';
+execute_trigger('asigna_var');*/
+
+if :respuesta = 'S'
+   then message ('Espere un Momento. Generando Seguro Médico....');
+        synchronize;
+        SUMA_COMPLE;
+        --genera_planilla;
+        if not form_failure
+           then :system.message_level := 5;
+                commit;
+                :system.message_level := 0;
+                message ('Proceso Terminado con Exito');
+           else message ('Precaucion. Seguro Médico no pudo Generarse');
+        end if;
+        exit_form (no_validate);
+   else exit_form(no_validate);
+end if;
+
+----------------------------
+
+PROCEDURE SUMA_COMPLE IS
+
+BEGIN
+
+ 
+ UPDATE PLA_DPL_DATOSPLANILLA
+    SET DPL_PRIMAVEHI = :VALOR
+  WHERE DPL_PRIMAVEHI > 182;
+    
+   
+     
+:complemento.mensaje := 'Procesando Seguro Médico '||to_char(:valor,'000');
+
+COMMIT;
+
+END;
+
+
+
+    --// Generación Nomina de Emergencia
+
+    --// Generación Paso Salarial
+        --# Nomina Paso Salarial
+        --# Reporte Paso Salarial
+
+    --- ##### // Generación de Nómina
+
+    -- # Pregunta
+	--// Actualiza detalle estructura organizatival # YA
 
 
 ------------------------------------------------------------------------ FIN DE #### MODULO DE ADMINISTRACION DE SALARIOS
