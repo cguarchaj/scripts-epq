@@ -897,11 +897,97 @@ END SP_UPDATE_EXTRA_HOURS;
 
     --// varios
 
+        --// Descuentos por empleado
+
+        --// Personal por contrato
+
+        --// Descuentos acumulados por empleado
+
+        --// Descuentos por empleado y aporte patronal
+
+        --// Acumulados de aporte patronal y empleado
+
+        --// Otros descuentos
+
+        --// Otros ingresos
+
+        --// Ingresos por empleado
+
+        --// Ingresos por centro de costo
+
+        --// Acta de despido o renuncia
+
+        --// Promedio mensual aguinaldo general
+
+        --// Promedio aguinaldo especifica
+
+        --//  comparacion devengados
+
+        --// Tiempo no trabajado
+
+        --// Reporte de horas extras por empleado
+
+        --// extras por empleado y fecha
+
+        --// extras por empleado y tipo ext.
+
+        --// control de llegadas tarde
+
+        --// Promedio de comisiones para vacaciones
+
+        --// Promedio de comisiones para ventas
+
+        --//  Firma de pagos de prestamos
+
+        --// carta de prestamos de empleado
+
+        --// HIstorico salarios
+
+        --// Historico salarios por unidad
+
+        --// Reporte integracion contable
+
+        --// Resumen partida contable
+
+        --// Verificacion de entradas y salidas
+
+        --// Provision mensual de gastos por unidad
+
+        --// Provision mensual de gastos por C. costo
+
+        --//  Provision acumulada (Solo activos)
+
+        --// Ingresos y prestaciones por empleado
+
+        --// Ingressos y prestaciones por empleado (File)
+
     --// Generacion nomina
 
     --// Generacion nomina bono compensatorio
 
+        --// Generacion bono compensatorio
+
+        --// Reporte nomina
+
+        --// Boleta de pago compensatorio
+
+        --// Deposito de bono comp
+
+        --// Resumen de bono comp
+
     --// Generacion nomina 10% y paso salarial
+
+        --// Generacion de nomina
+
+        --// Generacion tabla
+
+        --// Consulta tabla
+
+        --// Reporte nomina
+
+        --// Resumen
+
+        --// Deposito
 
     --// Generacion bono orden festivo nav
 
@@ -925,17 +1011,51 @@ END SP_UPDATE_EXTRA_HOURS;
 
     --// Bono escolar empleado
 
-    --// Dieta
+    --// Dietas
+
+        --// Nomina de dietas
+
+        --// Generacion nomina dietas
 
     --// Aguinaldos 011 y 022
 
+        --// Generacion de tabla
+
+        --// Consulta de aguinaldo por partida
+
+        --// generacion de nomina
+
     --// Utilidades
+
+        --// Generacion de tabla
+
+        --// Consulta de utilidades por partida
+
+        --// Ingreso de utilidades primer registro
+
+        --// Generacion de nomina
 
     --// Complemento Horas Extras
 
     --// Bono 14
 
+        --// Generacion de tabla anterios
+
+        --// Generacion tabla actual
+
+        --// Consulta de bono 14 por partida
+
+        --// Ingreso de bono 14 primer registro
+
+        --// Generacion de nomina
+
     --// Bono 14 Renglon 022
+
+        --// Generacion de tablas
+
+        --// Consulta bono 14
+
+        --// Generacion nomina
 
     --// Generacion codigos observacion
 
@@ -945,9 +1065,31 @@ END SP_UPDATE_EXTRA_HOURS;
 
     --// Ayuda economica 022
 
+        --// Generacion nomina
+
+        --// Reporte nomina
+
     --// Personal por contrato Renglon 029 y grupo 18
 
+        --// Generacion de nomina
+
+        --// Reporte de nomina
+
+        --// Resumen de nomina
+
+        --// Deposito de nomina
+
     --// Personal del renglon 022
+
+        --// Generacion de nomina
+
+        --// Reporte de nomina
+
+        --// Resumen de nomina contrato
+
+        --// Resumen de nomina profesional
+
+        --// Deposito de nomina
 
     --// Servicios extraordinarios
 
@@ -962,35 +1104,6 @@ END SP_UPDATE_EXTRA_HOURS;
     --// Reversion Parcial planillas
 
     --// Reversion total planillas
-
-    Declare alerta ALERT := find_alert('ERROR');
-   desc_error VARCHAR2(80);
-   dummy number;
-Begin
-Select the_nombre,
-       decode(:b1.ext_tipo, 'E',
-              (the_valor_extra + (nvl(the_nocturnidad,0)*2)) * 100,
-                            'N',
-              (the_valor + nvl(the_nocturnidad,0)) * 100)
-Into  :b1.desc_the, :b1.porcentaje
-from pla_the_tipohoraex
-where the_codcia = :header.compania
-  and the_codigo = :b1.ext_codthe;
-Exception
-When No_Data_Found then
-    desc_error := 'Inconsistencia con Tipo de Hora Extra';
-    set_alert_property(alerta, alert_message_text, desc_error);
-    dummy := show_alert('ERROR');
-    if dummy = alert_button1 then
-       raise form_trigger_failure;
-    end if;
-End;
-if :ext_autorizacion is not null then
-	:dummy := 'S';
-else
-	:dummy := 'N';
-end if;
-
 
 
 ------------------------------------------------------------------------ FIN DE #### MODULO DE ADMINISTRACION DE SALARIOS
