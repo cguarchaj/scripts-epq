@@ -740,148 +740,31 @@ SELECT ROWID,TDC_CODCIA,TDC_CODIGO,TDC_DESCRIPCION,TDC_CTA_CONTABLE,TDC_CTA_CONT
 
     --// Autorizacion horas extras
 
-
-    SELECT ext_autorizacion FROM RHEPQ.PLA_EXT_EXTRAORDIN
-
     SELECT * FROM RHEPQ.PLA_EXT_EXTRAORDIN
-    WHERE EXT_FECHA_INI BETWEEN TO_DATE('2010-10-10', 'YYYY-MM-DD')  AND TO_DATE('2024-10-10', 'YYYY-MM-DD') 
-    and ext_codemp = 2193
+    WHERE EXT_FECHA_INI BETWEEN TO_DATE('2024-01-01', 'YYYY-MM-DD')  AND TO_DATE('2024-10-10', 'YYYY-MM-DD') 
+    ORDER BY EXT_CODEMP 
+    and ext_codemp = 1549
     and ext_marca in ('S')
     ORDER BY ext_fecha_ini, ext_codthe
-    
-    
-    
-    B1 POSTQUERY
-
-Declare alerta ALERT := find_alert('ERROR');
-   desc_error VARCHAR2(80);
-   dummy number;
-Begin
-Select the_nombre,
-       decode(:b1.ext_tipo, 'E',
-              (the_valor_extra + (nvl(the_nocturnidad,0)*2)) * 100,
-                            'N',
-              (the_valor + nvl(the_nocturnidad,0)) * 100)
-Into  :b1.desc_the, :b1.porcentaje
-from pla_the_tipohoraex
-where the_codcia = :header.compania
-  and the_codigo = :b1.ext_codthe;
-Exception
-When No_Data_Found then
-    desc_error := 'Inconsistencia con Tipo de Hora Extra';
-    set_alert_property(alerta, alert_message_text, desc_error);
-    dummy := show_alert('ERROR');
-    if dummy = alert_button1 then
-       raise form_trigger_failure;
-    end if;
-End;
-if :ext_autorizacion is not null then
-	:dummy := 'S';
-else
-	:dummy := 'N';
-end if;
-
------
-
-B1 POSTQUERY
-
-Declare alerta ALERT := find_alert('ERROR');
-   desc_error VARCHAR2(80);
-   dummy number;
-Begin
-Select the_nombre,
-       decode(:b1.ext_tipo, 'E',
-              (the_valor_extra + (nvl(the_nocturnidad,0)*2)) * 100,
-                            'N',
-              (the_valor + nvl(the_nocturnidad,0)) * 100)
-Into  :b1.desc_the, :b1.porcentaje
-from pla_the_tipohoraex
-where the_codcia = :header.compania
-  and the_codigo = :b1.ext_codthe;
-Exception
-When No_Data_Found then
-    desc_error := 'Inconsistencia con Tipo de Hora Extra';
-    set_alert_property(alerta, alert_message_text, desc_error);
-    dummy := show_alert('ERROR');
-    if dummy = alert_button1 then
-       raise form_trigger_failure;
-    end if;
-End;
-if :ext_autorizacion is not null then
-	:dummy := 'S';
-else
-	:dummy := 'N';
-end if;
-
-
-----------------
-
-B0 POSTQUERY 
-
-Select dpl_salario, dpl_horas_dia
-  into :b0.dpl_salario, :b0.dpl_horas_dia
-  from pla_dpl_datosplanilla
- where dpl_codcia = :b0.emp_codcia
-   and dpl_codemp = :b0.emp_codigo;
-Exception
-   When no_data_found then null;
-
-
---- 
-
-CREATE OR REPLACE PROCEDURE RHEPQ.SP_UPDATE_EXTRA_HOURS (
-    pOpcion IN NUMBER,
-    pCompania IN VARCHAR2,
-    pCodigoExtra IN VARCHAR2,
-    pTipoExtra IN CHAR,
-    pAutorizacion IN VARCHAR2,
-    pCursor OUT SYS_REFCURSOR
-) AS
-    v_desc_error VARCHAR2(80);
-    v_nombre VARCHAR2(100);
-    v_porcentaje NUMBER;
-    v_valor_extra NUMBER;
-    v_valor NUMBER;
-    v_nocturnidad NUMBER;
-    v_dummy VARCHAR2(1);
-BEGIN
-
-IF pOpcion = 1 THEN
-    -- Uniendo datos necesarios desde las tablas relacionadas
-    SELECT the_nombre,
-           DECODE(pTipoExtra, 'E',
-                  (the_valor_extra + (NVL(the_nocturnidad, 0) * 2)) * 100,
-                  'N',
-                  (the_valor + NVL(the_nocturnidad, 0)) * 100)
-    INTO v_nombre, v_porcentaje
-    FROM pla_the_tipohoraex
-    WHERE the_codcia = pCompania
-      AND the_codigo = pCodigoExtra;
-
-    -- Configurar el valor de retorno en el cursor de salida
-    OPEN pCursor FOR
-    SELECT v_nombre AS desc_the, v_porcentaje AS porcentaje,
-           CASE
-               WHEN pAutorizacion IS NOT NULL THEN 'S'
-               ELSE 'N'
-           END AS dummy
-    FROM DUAL;
-END IF;
-
-EXCEPTION
-    -- Manejo de excepción cuando no hay datos encontrados
-    WHEN NO_DATA_FOUND THEN
-        v_desc_error := 'Inconsistencia con Tipo de Hora Extra';
-        OPEN pCursor FOR
-        SELECT v_desc_error AS mensaje FROM DUAL;
-END SP_UPDATE_EXTRA_HOURS;
 
 --------------------------------------------
     --// Autorizacion global de horas extras 
 
+        SELECT * FROM RHEPQ.PLA_EXT_EXTRAORDIN
+    WHERE EXT_FECHA_INI BETWEEN TO_DATE('2024-01-01', 'YYYY-MM-DD')  AND TO_DATE('2024-10-10', 'YYYY-MM-DD') 
+    ORDER BY EXT_CODEMP 
+    and ext_codemp = 1549
+    and ext_marca in ('S')
+    ORDER BY ext_fecha_ini, ext_codthe
+
     --// Registro tiempo no trabajado
 
+    SELECT ROWID,TNN_CODCIA,TNN_CODEMP,TNN_CODTNT,TNN_FECHA_DEL,TNN_FECHA_AL,TNN_NUM_DIAS,TNN_NUM_HORAS,TNN_VALOR_HR,TNN_VALOR,TNN_VALOR_REAL,TNN_MOTIVO,TNN_OBSERVACION,TNN_FECHA_PAGO,TNN_INCAPACIDAD_ISSS,TNN_TIPO_HORA,TNN_AUTORIZACION FROM PLA_TNN_TIEMPO_NO_TRAB WHERE (TNN_CODCIA=:1) and (fasewr)
+    SELECT * FROM RHEPQ.AU_RRHH_CONTROL_VACA
+
     --// Autorizacion tiempo no trabajado
+
+    SELECT ROWID,EMP_CODCIA,EMP_CODIGO,EMP_PRIMER_APE,EMP_SEGUNDO_APE,EMP_APELLIDO_CAS,EMP_PRIMER_NOM,EMP_SEGUNDO_NOM FROM PLA_EMP_EMPLEADO WHERE (emp_codcia, emp_codigo) in (Select tnn_codcia, tnn_codemp from PLA_TNN_TIEMPO_NO_TRAB where tnn_codcia = '001' and tnn_autorizacion is null) and (EMP_CODCIA=:1) and (rqer)
 
     --// Otros ingresos
 
