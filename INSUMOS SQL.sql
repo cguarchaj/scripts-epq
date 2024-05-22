@@ -530,10 +530,23 @@ End;
    --// Ley de Probidad de empleados
    
    SELECT ROWID,PRO_CODCIA,PRO_CODEMP,PRO_NUMERO,PRO_FECHA_PRIMERA_DECLARACION,PRO_FECHA_ENTREGA_CARGO,PRO_FECHA_ENTREGA_COLEGIO,PRO_OBSERVACIONES,PRO_FECHA_INGRESO,PRO_USUARIO_INGRESO FROM PLA_EMP_PROBIDAD WHERE (PRO_CODCIA=:1) and (fasdfasd)
+
+   ALTER TABLE RHEPQ.PLA_EMP_PROBIDAD
+    MODIFY (PRO_CODEMP NUMBER(38, 0));
    
    -- SELECT TIPO (1, 2, 3, 4)
    
    SELECT ROWID,PROD_CODCIA,PROD_CODEMP,PROD_NUMERO,PROD_TIPO_DECLARACION,PROD_CORRELATIVO,PROD_FECHA_DOCUMENTO,PROD_OBSERVACIONES,PROD_FECHA_INGRESO,PROD_USUARIO_INGRESO FROM RHEPQ.PLA_EMP_PROBIDAD_DET WHERE (PROD_CODCIA=1) and (PROD_CODEMP=419) and (PROD_NUMERO='050020107E') and (fasdfasd)
+
+   
+        ALTER TABLE RHEPQ.PLA_EMP_PROBIDAD_DET
+        MODIFY (PROD_CODEMP NUMBER(38, 0));
+
+        ALTER TABLE RHEPQ.PLA_EMP_PROBIDAD_DET
+        MODIFY (PROD_TIPO_DECLARACION NUMBER(38, 0));  
+
+        ALTER TABLE RHEPQ.PLA_EMP_PROBIDAD_DET
+        MODIFY (PROD_CORRELATIVO NUMBER(38, 0));  
    
    --// Uniformes empleados EPQ -- si se utiliza
 
@@ -751,52 +764,527 @@ SELECT ROWID,TDC_CODCIA,TDC_CODIGO,TDC_DESCRIPCION,TDC_CTA_CONTABLE,TDC_CTA_CONT
     --// Autorizacion global de horas extras 
 
         SELECT * FROM RHEPQ.PLA_EXT_EXTRAORDIN
-    WHERE EXT_FECHA_INI BETWEEN TO_DATE('2024-01-01', 'YYYY-MM-DD')  AND TO_DATE('2024-10-10', 'YYYY-MM-DD') 
-    ORDER BY EXT_CODEMP 
-    and ext_codemp = 1549
-    and ext_marca in ('S')
-    ORDER BY ext_fecha_ini, ext_codthe
+        WHERE EXT_FECHA_INI BETWEEN TO_DATE('2024-01-01', 'YYYY-MM-DD')  AND TO_DATE('2024-10-10', 'YYYY-MM-DD') 
+        ORDER BY EXT_CODEMP 
+        and ext_codemp = 1549
+        and ext_marca in ('S')
+        ORDER BY ext_fecha_ini, ext_codthe
 
     --// Registro tiempo no trabajado
 
-    SELECT ROWID,TNN_CODCIA,TNN_CODEMP,TNN_CODTNT,TNN_FECHA_DEL,TNN_FECHA_AL,TNN_NUM_DIAS,TNN_NUM_HORAS,TNN_VALOR_HR,TNN_VALOR,TNN_VALOR_REAL,TNN_MOTIVO,TNN_OBSERVACION,TNN_FECHA_PAGO,TNN_INCAPACIDAD_ISSS,TNN_TIPO_HORA,TNN_AUTORIZACION FROM PLA_TNN_TIEMPO_NO_TRAB WHERE (TNN_CODCIA=:1) and (fasewr)
-    SELECT * FROM RHEPQ.AU_RRHH_CONTROL_VACA
+        SELECT ROWID,TNN_CODCIA,TNN_CODEMP,TNN_CODTNT,TNN_FECHA_DEL,TNN_FECHA_AL,TNN_NUM_DIAS,TNN_NUM_HORAS,TNN_VALOR_HR,TNN_VALOR,TNN_VALOR_REAL,TNN_MOTIVO,TNN_OBSERVACION,TNN_FECHA_PAGO,TNN_INCAPACIDAD_ISSS,TNN_TIPO_HORA,TNN_AUTORIZACION FROM PLA_TNN_TIEMPO_NO_TRAB WHERE (TNN_CODCIA=:1) and (fasewr)
+        SELECT * FROM RHEPQ.AU_RRHH_CONTROL_VACA
+
+        SELECT ROWID,TNN_CODCIA,TNN_CODEMP,TNN_CODTNT,TNN_FECHA_DEL,TNN_FECHA_AL,TNN_NUM_DIAS,TNN_NUM_HORAS,TNN_VALOR_HR,TNN_VALOR,TNN_VALOR_REAL,TNN_MOTIVO,TNN_OBSERVACION,TNN_FECHA_PAGO,TNN_INCAPACIDAD_ISSS,TNN_TIPO_HORA,TNN_AUTORIZACION FROM PLA_TNN_TIEMPO_NO_TRAB WHERE (TNN_CODCIA=:1) and (fasewr)
+
+        SELECT TNN_INCAPACIDAD_ISSS FROM RHEPQ.PLA_TNN_TIEMPO_NO_TRAB
+
+        Select emp_primer_ape||', '||emp_primer_nom, dpl_salario,
+            dpl_tipo_salario
+        From pla_emp_empleado, pla_dpl_datosplanilla
+        Where emp_codigo = 2193
+            and emp_codcia = dpl_codcia(+) 
+            and emp_codigo = dpl_codemp(+);
 
     --// Autorizacion tiempo no trabajado
 
-    SELECT ROWID,EMP_CODCIA,EMP_CODIGO,EMP_PRIMER_APE,EMP_SEGUNDO_APE,EMP_APELLIDO_CAS,EMP_PRIMER_NOM,EMP_SEGUNDO_NOM FROM PLA_EMP_EMPLEADO WHERE (emp_codcia, emp_codigo) in (Select tnn_codcia, tnn_codemp from PLA_TNN_TIEMPO_NO_TRAB where tnn_codcia = '001' and tnn_autorizacion is null) and (EMP_CODCIA=:1) and (rqer)
+        SELECT ROWID,EMP_CODCIA,EMP_CODIGO,EMP_PRIMER_APE,EMP_SEGUNDO_APE,EMP_APELLIDO_CAS,EMP_PRIMER_NOM,EMP_SEGUNDO_NOM FROM PLA_EMP_EMPLEADO WHERE (emp_codcia, emp_codigo) in (Select tnn_codcia, tnn_codemp from PLA_TNN_TIEMPO_NO_TRAB where tnn_codcia = '001' and tnn_autorizacion is null) and (EMP_CODCIA=:1) and (rqer)
 
     --// Otros ingresos
 
+        SELECT ROWID,OIN_CODCIA,OIN_CODEMP,OIN_CODTIG,OIN_CODIGO,OIN_FECHA_ING,OIN_HORAS,OIN_PORCEN,OIN_VALOR,OIN_ESTADO,OIN_MARCA FROM PLA_OIN_OTROS_INGRESOS WHERE (OIN_CODCIA=:1) and (fasfwer)
+
     --// Otros Descuentos
+
+        SELECT ROWID,ODS_CODCIA,ODS_CODEMP,ODS_CODTDC,ODS_CODIGO,ODS_VALOR,ODS_FECHA_DES,ODS_ESTADO FROM PLA_ODS_OTROS_DESCUENTOS WHERE (ODS_CODCIA=:1) and (fqwerqwf)
 
     --// Aplicacion automatica Otros descuentos
 
+        Insert into pla_ods_otros_descuentos
+                (ODS_CODCIA, ODS_CODEMP, ODS_CODTDC,
+                ODS_CODIGO, ODS_VALOR,  ODS_FECHA_DES,
+                ODS_ESTADO)
+        Select :header.compania, emp_codigo, :tipo_desc,
+                pla_ods_sec.nextval, :valor, :fecha_pago, 'G'
+            from pla_emp_empleado
+        where emp_codcia = :header.compania
+            and emp_estado = 'A';
+
     --// Retencion de ISR x Empleado
+
+        SELECT ROWID,IEM_CODCIA,IEM_CODEMP,IEM_VALOR_ISR,IEM_ESTADO FROM PLA_IEM_ISR_EMPLEADO WHERE (IEM_CODCIA=:1) and (fasdf)
+
+        SELECT  * FROM RHEPQ.PLA_ICR_INSTITUCION
+
+        SELECT ROWID,ODS_CODCIA,ODS_CODEMP,ODS_CODTDC,ODS_CODIGO,ODS_VALOR,ODS_FECHA_DES,ODS_ESTADO FROM PLA_ODS_OTROS_DESCUENTOS WHERE (ODS_CODCIA=:1) and (fqwerqwf)
+
+        SELECT *  FROM PLA_ODS_OTROS_DESCUENTOS WHERE ODS_ESTADO = 'G'  ODS_CODEMP = 2193
+        SELECT COUNT(*)  FROM PLA_ODS_OTROS_DESCUENTOS WHERE ODS_CODEMP = 2193 		37745
+
+
+            Select ppl_fecha_pago
+        --into :oin_fecha_ing
+        from pla_ppl_param_plani
+        where ppl_codcia = '001'
+        and ppl_estado = 'R'
+        and ppl_fecha_pago = TO_DATE('2024-03-28', 'YYYY/MM/DD') ;
+
+        -- tipo descuento
+        Select *
+        --Into  :b1.desc_tig
+        From pla_tdc_tipo_descuento
+        Where tdc_codigo = :b1.ods_codtdc and
+                tdc_codcia = :HEADER.compania;
+            
+            
+            Select ppl_fecha_pago
+        --into :ods_fecha_des
+        from pla_ppl_param_plani
+        where ppl_codcia = '001'
+        and ppl_estado = 'R'
+        and ppl_fecha_pago = :ods_fecha_des;
+
+        SELECT ROWID,OIN_CODCIA,OIN_CODEMP,OIN_CODTIG,OIN_CODIGO,OIN_FECHA_ING,OIN_HORAS,OIN_PORCEN,OIN_VALOR,OIN_ESTADO,OIN_MARCA FROM PLA_OIN_OTROS_INGRESOS WHERE (OIN_CODCIA=:1) and (fasfwer)
+
+        SELECT *  FROM PLA_OIN_OTROS_INGRESOS WHERE OIN_CODEMP = 2193
+        SELECT COUNT(*)  FROM PLA_OIN_OTROS_INGRESOS WHERE OIN_CODEMP = 2193 8599
+
+        Select *
+        --Into :b1.desc_tig
+        From pla_tig_tipo_ingreso
+        Where tig_codigo = :b1.oin_codtig;
+        
+            Select dpl_salario, dpl_horas_dia
+            from pla_dpl_datosplanilla
+            where dpl_codcia = 001
+            and dpl_codemp = 2193;
+            
+            Select ppl_fecha_pago
+        --into :oin_fecha_ing
+        from pla_ppl_param_plani
+        where ppl_codcia = '001'
+        and ppl_estado = 'R'
+        and ppl_fecha_pago = TO_DATE('2024-03-28', 'YYYY/MM/DD') ;
+
 
     --// Descuentos judiciales x empleado
 
+        SELECT * FROM RHEPQ.pla_dju_descuento_judicial ORDER BY DJU_CODEMP
+        SELECT ROWID,DETDJU_CODEMP,DETDJU_JUICIO,DETDJU_BENEFICIARIO,DETDJU_FECHA_VENCIMIENTO,DETDJU_ESTADO,DETDJU_VALOR FROM rhepq.PLA_DJU_DETALLE_DESC_JUDICIAL WHERE (DETDJU_CODEMP=:1) and (fasdqwer)
+
+        -- tipo descuento
+        Select *
+        --Into  :b1.desc_tig
+        From pla_tdc_tipo_descuento
+        Where tdc_codigo = :b1.ods_codtdc and
+                tdc_codcia = :HEADER.compania;
+
+        SELECT * FROM RHEPQ.pla_dju_descuento_judicial ORDER BY DJU_CODEMP desc
+
+        SELECT * FROM RHEPQ.pla_dju_descuento_judicial WHERE DJU_CODEMP = 2193
+
+        SELECT * FROM RHEPQ.pla_dju_descuento_judicial B1
+        INNER JOIN RHEPQ.PLA_DJU_DETALLE_DESC_JUDICIAL DJU ON DJU.DETDJU_CODEMP = B1.DJU_CODEMP
+
+        SELECT * FROM RHEPQ.PLA_DJU_DETALLE_DESC_JUDICIAL ORDER BY DETDJU_CODEMP DESC
+
+        SELECT ROWID,DETDJU_CODEMP,DETDJU_JUICIO,DETDJU_BENEFICIARIO,DETDJU_FECHA_VENCIMIENTO,DETDJU_ESTADO,DETDJU_VALOR FROM rhepq.PLA_DJU_DETALLE_DESC_JUDICIAL WHERE (DETDJU_CODEMP=:1) and (fasdqwer)
+
+        SELECT ISYSEPQ.GETNOMBRECOMPLETOEMPLEADO(29250) FROM dual;
+
+        SELECT * FROM RHEPQ.PLA_IEM_ISR_EMPLEADO WHERE IEM_CODEMP = 29250
+
+        SELECT ROWID,IEM_CODCIA,IEM_CODEMP,IEM_VALOR_ISR,IEM_ESTADO FROM PLA_IEM_ISR_EMPLEADO WHERE (IEM_CODCIA=:1) and (fasdf)
+
+        SELECT * FROM RHEPQ.PLA_EMP_EMPLEADO ORDER BY EMP_CODIGO desc
+
+
+
+        SELECT  * FROM RHEPQ.PLA_ICR_INSTITUCION
+
+        SELECT * FROM RHEPQ.PLA_GRT_GRUPOTRABAJO
+
+        SELECT * FROM RHEPQ.PLA_PLZ_PLAZA
+
+        SELECT ROWID,PLZ_CODCIA,PLZ_CODIGO,PLZ_NOMBRE,PLZ_NOMBRE_ING,PLZ_CODTPP,PLZ_CODPUE,PLZ_CODUNI,PLZ_ESTADO,PLZ_DISPRESP,PLZ_PPR_N8,PLZ_CODTMO,PLZ_CODUBI,PLZ_CODAFN,PLZ_VALOR_HORA,PLZ_CEN_COSTO,PLZ_CODGRE,PLZ_CODESP,PLZ_ALMUERZO,PLZ_FECHA_PPTO,PLZ_FECHA_SUPRE,PLZ_PPR_N1,PLZ_PPR_N2,PLZ_PPR_N3,PLZ_PPR_N4,PLZ_PPR_N5,PLZ_PPR_N6,PLZ_PPR_N7 FROM PLA_PLZ_PLAZA WHERE (PLZ_CODCIA=:1) and (fqwerasf)
+
+
+
     --// Codigos de Observcacion
+
+        SELECT * FROM RHEPQ.PLA_COB_CODIGO_OBS WHERE COB_CODEMP = 29253
+
+        ALTER TABLE RHEPQ.PLA_COB_CODIGO_OBS
+        MODIFY (COB_CODEMP NUMBER(38, 0));
 
     --// varios
 
         --// Descuentos por empleado
 
+            -- Q1
+
+            Select emp_codigo, (emp_primer_ape||' '||emp_segundo_ape||
+                ' '||emp_primer_nom||' '|| emp_segundo_nom) Nombre_Empleado
+            From pla_emp_empleado, pla_dpl_datosplanilla, pla_tpl_tipo_planilla
+            Where  emp_codcia = '001' and
+                        emp_area = decode (substr ('ADMINISTRACION',1,1), 'T',
+                        emp_area, substr('ADMINISTRACION',1,1)) and
+            --*            emp_area = tpl_area and
+            --*           emp_estado = 'A' and
+                    dpl_codcia   = '001' and
+                    dpl_codemp  = emp_codigo and
+                    tpl_tipo        = dpl_tipo_salario and
+                    tpl_codcia    = '001' and
+            --*           TPL_AREA  = EMP_AREA AND
+                    tpl_codigo    = '01' and
+                        (emp_codcia, emp_codigo) in (Select dss_codcia,
+                                                dss_codemp
+                                                from pla_dss_descuentos
+                                                where dss_codcia = '01'
+                                                    and dss_codtpl = nvl('01',dss_codtpl)
+                                                    and dss_codpla = 201710
+                                                    and dss_codtdc =
+                                                    nvl(NULL, dss_codtdc))
+
+            -- Q2
+                                                    
+            Select tdc_codigo, tdc_nombrecorto
+            From pla_tdc_tipo_descuento
+            Where tdc_codcia = '001' and
+                    tdc_codigo = nvl(NULL, tdc_codigo) and
+                    (tdc_codcia, tdc_codigo) in (Select dss_codcia,
+                                dss_codtdc from pla_dss_descuentos
+                                where dss_codcia = '001'
+                                    and dss_codtpl = nvl(NULL,dss_codtpl)
+                                    and dss_codpla = 201710
+                        and dss_codtdc = nvl(NULL, dss_codtdc))
+
+            -- Q3
+                
+            Select 
+                dss_codemp, 
+                dss_codtdc, 
+                dss_valor, 
+                dss_codtpl, 
+                ISYSEPQ.GETNOMBRECOMPLETOEMPLEADO(dss_codemp)
+            From pla_dss_descuentos
+            Where dss_codcia = '001' and
+                dss_codtpl = nvl(NULL, dss_codtpl) and
+                dss_codpla = 201710
+
         --// Personal por contrato
+            --#PLANILLAS PRUEBA 200503     201710  
+            pr_personal_contrato_2
+
+            
+            -- Personal contrato
+
+            select emp_codigo,emp_nombre_cip,emp_coduni,emp_salario,uni_nombre
+            from pla_emp_empleado, pla_uni_unidad, pla_inn_ingresos
+            where emp_codcia = uni_codcia
+            and emp_coduni = uni_codigo
+            and emp_codcia = inn_codcia
+            and emp_codigo = inn_codemp
+            and emp_estado IN ('A','S')
+            AND EMP_CODREN = '35'
+            AND inn_codpla = 200503
+            group by emp_coduni,emp_nombre_cip,emp_codigo,emp_salario,uni_nombre 
+            ORDER BY emp_coduni,emp_nombre_cip
+
+            --SELECT * FROM RHEPQ.PLA_EMP_EMPLEADO WHERE EMP_CODREN = '35'
 
         --// Descuentos acumulados por empleado
 
+            -- Q1
+
+            Select  emp_codigo, (emp_primer_ape||' '||emp_segundo_ape||
+                ' '||emp_primer_nom||' '|| emp_segundo_nom) Nombre_Empleado
+            From pla_emp_empleado, pla_dpl_datosplanilla, pla_tpl_tipo_planilla
+            Where  emp_codcia = :compania and
+                        emp_area = decode (substr (:area,1,1), 'T',
+                        emp_area, substr (:area,1,1)) and
+            --*           emp_estado = 'A' and
+            --*           emp_area = tpl_area and 
+                    dpl_codcia   = emp_codcia and
+                    dpl_codemp  = emp_codigo and
+                    tpl_tipo        = dpl_tipo_salario and
+                    tpl_codcia    = :compania and
+                    tpl_codigo    = NVL(:tipo_pla,TPL_CODIGO) and
+                    (emp_codcia, emp_codigo) in (Select dss_codcia,
+                                                dss_codemp
+                                                from pla_dss_descuentos, pla_pla_planilla
+                                                where dss_codcia = :compania
+                                and dss_codtpl = NVL(:tipo_pla, DSS_CODTPL)
+                                                    and dss_codcia = pla_codcia
+                                                    and dss_codtpl = pla_codtpl
+                                                    and dss_codpla = pla_codigo 
+                                                    and pla_fecha_pago between :fecha_del and :fecha_al
+                                                    and dss_codtdc =
+                                                    nvl(:tipo_des, dss_codtdc))
+            GROUP BY emp_codigo, (emp_primer_ape||' '||emp_segundo_ape||
+                ' '||emp_primer_nom||' '|| emp_segundo_nom) 
+
+            -- Q2
+
+            SELECT tdc_codigo, tdc_nombrecorto, tdc_codigo
+            FROM pla_tdc_tipo_descuento
+            WHERE tdc_codcia = '001' 
+            AND tdc_codigo = NVL('02', tdc_codigo) 
+            AND (tdc_codcia, tdc_codigo) IN (
+                    SELECT dss_codcia, dss_codtdc 
+                    FROM pla_dss_descuentos, pla_pla_planilla
+                    WHERE dss_codcia = '001'
+                    AND dss_codtpl = NVL('01', dss_codtpl)
+                    AND dss_codcia = pla_codcia 
+                    AND dss_codtpl = pla_codtpl
+                    AND dss_codpla = pla_codigo
+                    AND pla_fecha_pago BETWEEN TO_DATE('20/09/2001', 'DD/MM/YYYY') AND TO_DATE('30/09/2001', 'DD/MM/YYYY')
+                    AND dss_codtdc = NVL('02', dss_codtdc)
+                );
+
+
+            -- Q3
+                        
+                    Select dss_codemp, dss_codtdc, sum(nvl(dss_valor,0)) dss_valor, pla_fecha_pago
+            From pla_dss_descuentos, pla_pla_planilla
+            Where dss_codcia = :compania and
+                dss_codtpl = NVL(:tipo_pla,DSS_CODTPL) and
+                dss_codcia = pla_codcia and
+                dss_codtpl = pla_codtpl and
+                dss_codpla = pla_codigo and
+                pla_fecha_pago between :fecha_del and :fecha_al
+            Group by dss_codemp,dss_codtdc 
+
         --// Descuentos por empleado y aporte patronal
+
+            ---- Q1
+
+            Select emp_codigo, emp_primer_ape||' '||emp_segundo_ape||' '||
+                emp_primer_nom||' '||emp_segundo_nom Nombre_empleado
+            From pla_emp_empleado, pla_dpl_datosplanilla, pla_tpl_tipo_planilla
+            where emp_codcia = :compania
+            and dpl_codcia = emp_codcia
+            and dpl_codemp = emp_codigo
+            and dpl_tipo_salario = tpl_tipo
+            and emp_area = decode( substr (:area,1,1), 'T',
+            emp_area, substr(:area,1,1))
+            --*  and emp_area = tpl_area
+            --*  and emp_estado = 'A'
+            and tpl_codcia = :compania
+            and tpl_codigo = :tipo_pla    
+            and (emp_codcia, emp_codigo) in
+                (Select dss_codcia, dss_codemp
+                From pla_dss_descuentos
+                Where dss_codcia = :compania
+                    and dss_codtpl = :tipo_pla
+                    and dss_codpla = :planilla 
+                    and dss_codtdc =
+                        nvl(:tpo_desc, dss_codtdc))
+                            
+
+            ---- Q2
+
+            Select tdc_codigo, tdc_nombrecorto        
+            From pla_tdc_tipo_descuento
+            where tdc_codcia = :compania and
+                tdc_codigo = nvl(:tpo_desc, tdc_codigo) and
+                (tdc_codcia, tdc_codigo) in (Select dss_codcia, dss_codtdc
+                                            From pla_dss_descuentos
+                                            Where dss_codcia = :compania
+                                                and dss_codtpl = :tipo_pla
+                                                and dss_codpla = :planilla
+                and dss_codtdc = nvl(:tpo_desc, dss_codtdc))
+
+
+            ---- Q3
+
+
+            Select dss_codemp, dss_codtdc, dss_valor, dss_valor_pat
+            From pla_dss_descuentos
+            where dss_codcia = '001' and
+                dss_codtpl = '01' and
+                dss_codpla = 201710
 
         --// Acumulados de aporte patronal y empleado
 
+        ---- Q1
+
+            Select emp_codigo, emp_primer_ape||' '||emp_segundo_ape||' '||
+                emp_primer_nom||' '||emp_segundo_nom Nombre_empleado
+            From pla_emp_empleado, pla_dpl_datosplanilla, pla_tpl_tipo_planilla
+            where emp_codcia = :compania
+            and dpl_codcia = emp_codcia
+            and dpl_codemp = emp_codigo
+            and dpl_tipo_salario = tpl_tipo
+            and emp_area = decode( substr (:area,1,1), 'T',
+            emp_area, substr(:area,1,1))
+            --*  and emp_area = tpl_area
+            --*  and emp_estado = 'A'
+            and tpl_codcia = :compania
+            and tpl_codigo = :tipo_pla    
+            and (emp_codcia, emp_codigo) in
+                (Select dss_codcia, dss_codemp
+                From pla_dss_descuentos
+                Where dss_codcia = :compania
+                    and dss_codtpl = :tipo_pla
+                    and dss_codpla = :planilla 
+                    and dss_codtdc =
+                        nvl(:tpo_desc, dss_codtdc))
+                            
+
+            ---- Q2
+
+            Select tdc_codigo, tdc_nombrecorto        
+            From pla_tdc_tipo_descuento
+            where tdc_codcia = :compania and
+                tdc_codigo = nvl(:tpo_desc, tdc_codigo) and
+                (tdc_codcia, tdc_codigo) in (Select dss_codcia, dss_codtdc
+                                            From pla_dss_descuentos
+                                            Where dss_codcia = :compania
+                                                and dss_codtpl = :tipo_pla
+                                                and dss_codpla = :planilla
+                and dss_codtdc = nvl(:tpo_desc, dss_codtdc))
+
+
+            ---- Q3
+
+
+            Select dss_codemp, dss_codtdc, dss_valor, dss_valor_pat, DSS_CODPLA 
+            From pla_dss_descuentos
+            where dss_codcia = '001' and
+                dss_codtpl = '01' and
+                dss_codpla = 201710
+                
+                ISYSEPQ.GETNOMBRECOMPLETOEMPLEADO(emp.emp_codigo) AS Nombre_Empleado,  
+                
+                CREATE INDEX idx_emp_codigo_codcia ON pla_emp_empleado (emp_codigo, emp_codcia);
+            CREATE INDEX idx_emp_area ON pla_emp_empleado (emp_area);
+            CREATE INDEX idx_dpl_codemp_codcia ON pla_dpl_datosplanilla (dpl_codemp, dpl_codcia);
+            CREATE INDEX idx_tpl_tipo_codcia_codigo ON pla_tpl_tipo_planilla (tpl_tipo, tpl_codcia, tpl_codigo);
+            CREATE INDEX idx_dss_cemp_ccia_ctpl_cpla ON pla_dss_descuentos (dss_codemp, dss_codcia, dss_codtpl, dss_codpla, dss_codtdc);
+            CREATE INDEX idx_tdc_codcia_codigo ON pla_tdc_tipo_descuento (tdc_codcia, tdc_codigo);
+
+
         --// Otros descuentos
 
+            SELECT distinct ODS_CODCIA, ODS_CODEMP, ODS_CODTDC,
+                        decode(ODS_ESTADO, 'P', 'Pagado', 'G',                               'Registrado') estado,
+                        ODS_FECHA_DES,
+                        ODS_VALOR,                                                               CEM_APELLIDO_NOMBRE EMP_NOMBRE_ISSS,
+                        TDC_DESCRIPCION
+            FROM PLA_ODS_OTROS_DESCUENTOS,                PLA_EMP_EMPLEADO, PLA_CEM_CATALOGO_EMPLEADOS_V,
+                        PLA_TDC_TIPO_DESCUENTO,                PLA_DPL_DATOSPLANILLA,
+                        PLA_TPL_TIPO_PLANILLA
+            WHERE ODS_CODCIA = '001'
+            --*      AND (ODS_FECHA_DES BETWEEN :FECHA_INI AND
+            --*               :FECHA_FIN OR
+                --AND ODS_FECHA_DES = :FECHA_PAGO
+                AND EMP_CODCIA = ODS_CODCIA
+                AND EMP_CODIGO = ODS_CODEMP
+                AND EMP_CODIGO = NVL(NULL, EMP_CODIGO)
+            --*     AND EMP_ESTADO = 'A'
+                AND DPL_CODCIA = EMP_CODCIA
+                AND DPL_CODEMP = EMP_CODIGO
+                AND EMP_CODCIA = CEM_CODCIA
+                AND EMP_CODIGO = CEM_CODEMP
+                AND DPL_TIPO_SALARIO = TPL_TIPO
+                AND TDC_CODCIA = ODS_CODCIA
+                AND TDC_CODIGO = ODS_CODTDC
+                AND TPL_CODCIA = DPL_CODCIA
+                AND DPL_TIPO_SALARIO = SUBSTR('M',1,1)
+                AND EMP_AREA = DECODE(SUBSTR('ADMINISTRACION',1,1),'T',
+                EMP_AREA,SUBSTR('ADMINISTRACION',1,1))
+            ORDER BY CEM_APELLIDO_NOMBRE
+        
         --// Otros ingresos
+        
+            Select pla_fecha_del, pla_fecha_al, pla_fecha_pago, pla_codigo
+                --into :fecha_ini, :fecha_fin, :fecha_pago
+                from pla_pla_planilla
+            where pla_codcia = '001'
+                and pla_codtpl = '01'
+                and pla_codigo = 201710;
+
+            SELECT distinct OIN_CODCIA, OIN_CODEMP, OIN_CODTIG,
+                        decode(OIN_ESTADO, 'P', 'Pagado', 'G', 'Registrado') estado,
+                        OIN_FECHA_ING, OIN_HORAS,
+                        OIN_PORCEN, OIN_VALOR, CEM_APELLIDO_NOMBRE EMP_NOMBRE_ISSS,
+                        TIG_DESCRIPCION
+            FROM PLA_OIN_OTROS_INGRESOS, PLA_EMP_EMPLEADO,
+                        PLA_TIG_TIPO_INGRESO, PLA_DPL_DATOSPLANILLA,
+                        PLA_TPL_TIPO_PLANILLA, PLA_CEM_CATALOGO_EMPLEADOS_V
+            WHERE OIN_CODCIA = '001'
+            --*      AND (OIN_FECHA_ING BETWEEN :FECHA_INI AND
+            --*                  :FECHA_FIN OR
+                AND OIN_FECHA_ING = :FECHA_PAGO
+                AND EMP_CODCIA = OIN_CODCIA
+                AND EMP_CODIGO = OIN_CODEMP
+                AND EMP_CODIGO = NVL(NULL, EMP_CODIGO)
+                AND DPL_CODCIA = EMP_CODCIA
+                AND DPL_CODEMP = EMP_CODIGO
+                AND EMP_CODCIA = CEM_CODCIA
+                AND EMP_CODIGO = CEM_CODEMP
+                AND DPL_TIPO_SALARIO = TPL_TIPO
+                AND TIG_CODCIA = OIN_CODCIA
+                AND TIG_CODIGO = OIN_CODTIG
+                AND TPL_CODCIA = DPL_CODCIA
+                AND DPL_TIPO_SALARIO = SUBSTR('M',1,1)  
+                AND EMP_AREA = DECODE(SUBSTR('ADMINISTRACION',1,1),'T',
+                EMP_AREA, SUBSTR('ADMINISTRACION',1,1))
+            ORDER BY CEM_APELLIDO_NOMBRE                    
 
         --// Ingresos por empleado
+            
+            -- Q1
+            Select emp_codigo, (emp_primer_ape||' '||
+                emp_segundo_ape||' '||emp_primer_nom||' '||emp_segundo_nom)
+                Nombre_Empleado
+            from pla_emp_empleado, pla_dpl_datosplanilla, pla_tpl_tipo_planilla
+            where emp_codcia = :compania and
+                    dpl_codcia  = emp_codcia and
+                    dpl_codemp = emp_codigo and
+                    dpl_tipo_salario = tpl_tipo and
+                    emp_area = decode( substr (:area,1,1), 'T',
+                    emp_area, substr (:area,1,1)) and 	
+                    emp_estado = 'A' and
+                    tpl_codcia   = :compania and
+                    tpl_codigo   = :tipo_pla and
+                    (emp_codcia, emp_codigo) in (Select inn_codcia,
+                                                inn_codemp
+                                                from  pla_inn_ingresos
+                                                where inn_codcia = :compania
+                                                    and inn_codtpl = :tipo_pla
+                                                    and inn_codpla = :planilla
+                                                    and inn_codtig =
+                                                    nvl(:tipo_ingr, inn_codtig))
+                                                    
+            
+            -- Q2
+
+                    Select tig_codigo, tig_nombrecorto
+            From pla_tig_tipo_ingreso
+            Where tig_codcia = :compania
+            and tig_codigo = nvl(:Tipo_ingr, tig_codigo) and
+                    (tig_codcia, tig_codigo) in (Select inn_codcia,
+                                inn_codtig from pla_inn_ingresos
+                                where inn_codcia = :compania
+                                    and inn_codtpl = :tipo_pla
+                                    and inn_codpla = :planilla
+                        and inn_codtig = nvl(:tipo_ingr, inn_codtig))                               
+                                                                                                    
+                                                    
+            -- Q3
+
+            Select inn_codemp, inn_codtig,
+                inn_valor
+            From pla_inn_ingresos
+            Where inn_codcia = '001' and
+                inn_codtpl = '01' and
+                inn_codpla = 200603                        
 
         --// Ingresos por centro de costo
+
+
 
         --// Acta de despido o renuncia
 
