@@ -1285,6 +1285,28 @@ SELECT ROWID,TDC_CODCIA,TDC_CODIGO,TDC_DESCRIPCION,TDC_CTA_CONTABLE,TDC_CTA_CONT
         --// Ingresos por centro de costo
 
 
+Select inn_codcia,
+           dge_codigo,
+           dge_nombre_isss,
+           dge_codigo_anterior,
+           inn_codtig,
+           inn_valor,
+           dge_codcco,
+           dge_nombre_cco,
+           tig_nombrecorto
+ From pla_tig_tipo_ingreso,
+          pla_dge_general_empleado,
+          pla_inn_ingresos
+Where tig_codcia = inn_codcia
+     and tig_codigo = inn_codtig
+     and dge_codcia = inn_codcia
+     and dge_codigo = inn_codemp
+     and dge_area = decode( substr('ADMINISTRACION',1,1), 'T',
+     dge_area, substr('ADMINISTRACION',1,1))
+     And inn_codtig = nvl(NULL,inn_codtig)
+     And inn_codtpl = '01'
+    and inn_codpla = 200603
+
 
         --// Acta de despido o renuncia
 
