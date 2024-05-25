@@ -1284,33 +1284,65 @@ SELECT ROWID,TDC_CODCIA,TDC_CODIGO,TDC_DESCRIPCION,TDC_CTA_CONTABLE,TDC_CTA_CONT
 
         --// Ingresos por centro de costo
 
-
-Select inn_codcia,
-           dge_codigo,
-           dge_nombre_isss,
-           dge_codigo_anterior,
-           inn_codtig,
-           inn_valor,
-           dge_codcco,
-           dge_nombre_cco,
-           tig_nombrecorto
- From pla_tig_tipo_ingreso,
-          pla_dge_general_empleado,
-          pla_inn_ingresos
-Where tig_codcia = inn_codcia
-     and tig_codigo = inn_codtig
-     and dge_codcia = inn_codcia
-     and dge_codigo = inn_codemp
-     and dge_area = decode( substr('ADMINISTRACION',1,1), 'T',
-     dge_area, substr('ADMINISTRACION',1,1))
-     And inn_codtig = nvl(NULL,inn_codtig)
-     And inn_codtpl = '01'
-    and inn_codpla = 200603
-
+            Select inn_codcia,
+                    dge_codigo,
+                    dge_nombre_isss,
+                    dge_codigo_anterior,
+                    inn_codtig,
+                    inn_valor,
+                    dge_codcco,
+                    dge_nombre_cco,
+                    tig_nombrecorto
+            From pla_tig_tipo_ingreso,
+                    pla_dge_general_empleado,
+                    pla_inn_ingresos
+            Where tig_codcia = inn_codcia
+                and tig_codigo = inn_codtig
+                and dge_codcia = inn_codcia
+                and dge_codigo = inn_codemp
+                and dge_area = decode( substr('ADMINISTRACION',1,1), 'T',
+                dge_area, substr('ADMINISTRACION',1,1))
+                And inn_codtig = nvl(NULL,inn_codtig)
+                And inn_codtpl = '01'
+                and inn_codpla = 200603
 
         --// Acta de despido o renuncia
+            
+            SELECT 
+                emp_codigo,
+                initcap(EMP_PRIMER_NOM||' '||EMP_SEGUNDO_NOM||' '||EMP_PRIMER_APE||' '||
+                EMP_SEGUNDO_APE) nombre,
+                emp_fecha_nac, to_char(emp_fecha_ingreso,'YYYY') anio_ingreso, to_char(emp_fecha_retiro,'YYYY') anio_retir,
+                plz_nombre,initcap(dep_nombre) dept_nom,
+                emp_cip,
+                initcap(MUN_nombre) domicilio,
+                lower(decode(f.numero_valor,0,' ',rtrim(f.valor_texto))||
+                decode(length(to_char(f.numero_valor)),1,
+                decode(substr(to_char(f.numero_valor),
+                length(to_char(f.numero_valor)),1),'1','0',''),
+                decode(substr(to_char(f.numero_valor),
+                length(to_char(f.numero_valor)) -1,1),'1','',
+                decode(substr(to_char(f.numero_valor),
+                length(to_char(f.numero_valor)),1),'1',' ','') ) ) ||
+                decode(f.numero_valor,0,'','')) edad
+            from       pla_emp_empleado,pla_plz_plaza,pla_dpl_datosplanilla,
+                        pla_dep_departamento,pla_mun_municipio, cardinal f
+            where    emp_codcia = '001' and
+                        emp_codigo = 1412 and
+                        dpl_codcia = emp_codcia and
+                        dpl_codemp = emp_codigo  and   
+                        emp_estado = 'R' and
+                        f.numero_valor = (trunc((to_char(sysdate,'YYYY')-to_char(emp_fecha_nac,'YYYY')) -
+                                    trunc((to_char(sysdate,'YYYY')-to_char(emp_fecha_nac,'YYYY')), -3),0))
+                        and emp_coddep=dep_codigo
+                        and mun_coddep=dep_codigo
+                        and emp_codmun=mun_codigo
+                        and dpl_codcia = plz_codcia(+)
+                        and dpl_codplz = plz_codigo(+)          
 
         --// Promedio mensual aguinaldo general
+
+        
 
         --// Promedio aguinaldo especifica
 
