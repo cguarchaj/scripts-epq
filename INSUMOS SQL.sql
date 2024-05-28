@@ -1442,6 +1442,115 @@ Where tig_codcia = inn_codcia
 
         --// Generacion de nomina
 
+            SELECT * FROM RHEPQ.error_log
+
+            SELECT * FROM RHEPQ.PLA_TPL_TIPO_PLANILLA
+
+            SELECT * FROM RHEPQ.pla_pla_planilla WHERE PLA_CODIGO = '202307'
+
+            |PLA_CODCIA|PLA_CODTPL|PLA_CODIGO|PLA_FECHA_DEL          |PLA_FECHA_AL           |PLA_ESTADO|PLA_AUTORIZA|PLA_USUARIO_CREA|PLA_FECHA_CREA         |PLA_USUARIO_MOD|PLA_FECHA_MOD|PLA_FECHA_PAGO         |
+            |----------|----------|----------|-----------------------|-----------------------|----------|------------|----------------|-----------------------|---------------|-------------|-----------------------|
+            |001       |05        |202.307   |2022-07-01 00:00:00.000|2023-06-30 00:00:00.000|G         |            |RONALDC195      |2023-06-30 15:27:56.000|               |             |2023-07-15 00:00:00.000|
+
+
+
+            {
+                "PLA_CODCIA" : "001",
+                "PLA_CODTPL" : "05",
+                "PLA_CODIGO" : 202307,
+                "PLA_FECHA_DEL" : "2022-07-01T05:00:00.000Z",
+                "PLA_FECHA_AL" : "2023-06-30T06:00:00.000Z",
+                "PLA_ESTADO" : "G",
+                "PLA_AUTORIZA" : null,
+                "PLA_USUARIO_CREA" : "RONALDC195",
+                "PLA_FECHA_CREA" : "2023-06-30T21:27:56.000Z",
+                "PLA_USUARIO_MOD" : null,
+                "PLA_FECHA_MOD" : null,
+                "PLA_FECHA_PAGO" : "2023-07-15T06:00:00.000Z"
+            }
+
+
+            SELECT DISTINCT 
+                        bon_codcia, bon_codemp, bon_ppr_n2, bon_ppr_n3, bon_ppr_n4,
+                        bon_ppr_n5, bon_ppr_n6, bon_ppr_n7, bon_ppr_n8, bon_forma_pago, bon_codger,
+                        bon_coduni, bon_codplz, plz_nombre, uni_nombre, uni_codigo_2003, plz_codpue, plz_codtpp
+                    FROM 
+                        Pla_Bon_Bono14 a,
+                        Pla_Plz_Plaza b,
+                        Pla_Uni_Unidad c 
+                    WHERE 
+                        a.bon_codcia = b.plz_codcia
+                        AND a.bon_codplz = b.plz_codigo
+                        AND a.bon_codcia = c.uni_codcia
+                        AND a.bon_coduni = c.uni_codigo
+                        AND a.bon_codcia = pCodCia
+                        AND a.bon_codtpl = pCodTpl
+                        AND a.bon_codpla = pCodPla
+                    GROUP BY 
+                        bon_codcia, bon_codemp, bon_ppr_n2, bon_ppr_n3, bon_ppr_n4,
+                        bon_ppr_n5, bon_ppr_n6, bon_ppr_n7, bon_ppr_n8, bon_forma_pago, bon_codger,
+                        bon_coduni, bon_codplz, plz_nombre, uni_nombre, uni_codigo_2003, plz_codpue, plz_codtpp
+                    ORDER BY 
+                        bon_codcia, bon_codemp;
+                        
+
+                    
+            SELECT DISTINCT 
+                a.bon_codtpl,
+                a.bon_codpla,
+                a.bon_codcia, 
+                a.bon_codemp, 
+                a.bon_ppr_n2, 
+                a.bon_ppr_n3, 
+                a.bon_ppr_n4,
+                a.bon_ppr_n5, 
+                a.bon_ppr_n6, 
+                a.bon_ppr_n7, 
+                a.bon_ppr_n8, 
+                a.bon_forma_pago, 
+                a.bon_codger,
+                a.bon_coduni, 
+                a.bon_codplz, 
+                b.plz_nombre, 
+                c.uni_nombre, 
+                c.uni_codigo_2003, 
+                b.plz_codpue, 
+                b.plz_codtpp
+            FROM 
+                Pla_Bon_Bono14 a
+            JOIN 
+                Pla_Plz_Plaza b ON a.bon_codcia = b.plz_codcia AND a.bon_codplz = b.plz_codigo
+            JOIN 
+                Pla_Uni_Unidad c ON a.bon_codcia = c.uni_codcia AND a.bon_coduni = c.uni_codigo
+            WHERE 
+                a.bon_codcia = '001'
+                AND a.bon_codtpl = '05'
+                AND a.bon_codpla = 202307
+            GROUP BY 
+                a.bon_codtpl,
+                a.bon_codpla,
+                a.bon_codcia, 
+                a.bon_codemp, 
+                a.bon_ppr_n2, 
+                a.bon_ppr_n3, 
+                a.bon_ppr_n4,
+                a.bon_ppr_n5, 
+                a.bon_ppr_n6, 
+                a.bon_ppr_n7, 
+                a.bon_ppr_n8, 
+                a.bon_forma_pago, 
+                a.bon_codger,
+                a.bon_coduni, 
+                a.bon_codplz, 
+                b.plz_nombre, 
+                c.uni_nombre, 
+                c.uni_codigo_2003, 
+                b.plz_codpue, 
+                b.plz_codtpp
+            ORDER BY 
+                a.bon_codcia, 
+                a.bon_codemp;
+
     --// Bono 14 Renglon 022
 
         --// Generacion de tablas
