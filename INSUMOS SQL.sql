@@ -1,5 +1,16 @@
 St4nWeb2023
 
+PC-Home
+Clave inicio de sesion
+pc2023
+
+clave sistemas
+adiazdesa
+pass
+desarrollo
+
+Pc_2023.
+
 -- SP_PLA_PRIMER_INGRESO_BONO14
 
 SELECT * FROM RHEPQ.REC_TFN_TIPO_FUNCION rttf
@@ -1466,95 +1477,95 @@ SELECT ROWID,TDC_CODCIA,TDC_CODIGO,TDC_DESCRIPCION,TDC_CTA_CONTABLE,TDC_CTA_CONT
 
     --// Bono 14
 
-    SELECT  * FROM RHEPQ.PLA_ICR_INSTITUCION
+            SELECT  * FROM RHEPQ.PLA_ICR_INSTITUCION
 
-SELECT * FROM RHEPQ.error_log
+            SELECT * FROM RHEPQ.error_log
 
-SELECT count(*) from rhepq.pla_bon_bono14
--- 179130
--- 179131
-
-
-DECLARE
-    vCodCia VARCHAR2(3) := '001';
-    vCodTpl NUMBER := 5; -- Tipo de Planilla "05" convertida a NUMBER
-    vCodPla NUMBER := 202407; -- Planilla "202407" convertida a NUMBER
-    vMes VARCHAR2(2) := '08';
-    vFechaDel1 DATE := TO_DATE('2023-08-01', 'YYYY-MM-DD');
-
-    vRowsAffected NUMBER := 0;
-    vCursor SYS_REFCURSOR;
-    vMensaje VARCHAR2(32767);
-BEGIN
-    -- Ejecutar el procedimiento SP_REVERSION_TABLA_UTILIDADES
-    RHEPQ.SP_REVERSION_TABLA_UTILIDADES(
-        pCodCia => vCodCia,
-        pCodTpl => vCodTpl,
-        pCodPla => vCodPla,
-        pMes => vMes,
-        pFechaDel1 => vFechaDel1,
-        pRowsAffected => vRowsAffected,
-        pCursor => vCursor
-    );
-
-    -- Mostrar las filas afectadas
-    DBMS_OUTPUT.PUT_LINE('Filas afectadas en reversión: ' || vRowsAffected);
-
-    -- Obtener y mostrar el mensaje del cursor
-    FETCH vCursor INTO vMensaje;
-    DBMS_OUTPUT.PUT_LINE(vMensaje);
-    CLOSE vCursor;
-
-EXCEPTION
-    WHEN OTHERS THEN
-        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
-END;
+            SELECT count(*) from rhepq.pla_bon_bono14
+            -- 179130
+            -- 179131
 
 
----------------------------
+            DECLARE
+                vCodCia VARCHAR2(3) := '001';
+                vCodTpl NUMBER := 5; -- Tipo de Planilla "05" convertida a NUMBER
+                vCodPla NUMBER := 202407; -- Planilla "202407" convertida a NUMBER
+                vMes VARCHAR2(2) := '08';
+                vFechaDel1 DATE := TO_DATE('2023-08-01', 'YYYY-MM-DD');
+
+                vRowsAffected NUMBER := 0;
+                vCursor SYS_REFCURSOR;
+                vMensaje VARCHAR2(32767);
+            BEGIN
+                -- Ejecutar el procedimiento SP_REVERSION_TABLA_UTILIDADES
+                RHEPQ.SP_REVERSION_TABLA_UTILIDADES(
+                    pCodCia => vCodCia,
+                    pCodTpl => vCodTpl,
+                    pCodPla => vCodPla,
+                    pMes => vMes,
+                    pFechaDel1 => vFechaDel1,
+                    pRowsAffected => vRowsAffected,
+                    pCursor => vCursor
+                );
+
+                -- Mostrar las filas afectadas
+                DBMS_OUTPUT.PUT_LINE('Filas afectadas en reversión: ' || vRowsAffected);
+
+                -- Obtener y mostrar el mensaje del cursor
+                FETCH vCursor INTO vMensaje;
+                DBMS_OUTPUT.PUT_LINE(vMensaje);
+                CLOSE vCursor;
+
+            EXCEPTION
+                WHEN OTHERS THEN
+                    DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+            END;
+
+
+            ---------------------------
 
 
 
-DECLARE
-    vCodCia VARCHAR2(3) := '001';
-    vCodTpl NUMBER := 5; -- Tipo de Planilla "05" convertida a NUMBER
-    vCodPla NUMBER := 202407; -- Planilla "202407" convertida a NUMBER
-    vMes VARCHAR2(2) := '08';
-    vFechaDel DATE := TO_DATE('2023-07-01', 'YYYY-MM-DD');
-    vFechaAl DATE := TO_DATE('2024-06-30', 'YYYY-MM-DD');
-    vFechaDel1 DATE := TO_DATE('2023-08-01', 'YYYY-MM-DD');
-    vFechaAl1 DATE := TO_DATE('2023-08-31', 'YYYY-MM-DD');
+            DECLARE
+                vCodCia VARCHAR2(3) := '001';
+                vCodTpl NUMBER := 5; -- Tipo de Planilla "05" convertida a NUMBER
+                vCodPla NUMBER := 202407; -- Planilla "202407" convertida a NUMBER
+                vMes VARCHAR2(2) := '08';
+                vFechaDel DATE := TO_DATE('2023-07-01', 'YYYY-MM-DD');
+                vFechaAl DATE := TO_DATE('2024-06-30', 'YYYY-MM-DD');
+                vFechaDel1 DATE := TO_DATE('2023-08-01', 'YYYY-MM-DD');
+                vFechaAl1 DATE := TO_DATE('2023-08-31', 'YYYY-MM-DD');
 
-    vRowsAffected NUMBER := 0;
-    vCursor SYS_REFCURSOR;
-    vMensaje VARCHAR2(32767);
-BEGIN
-    -- Ejecutar el procedimiento SP_LLENADO_TABLA_UTILIDADES
-    RHEPQ.SP_LLENADO_TABLA_UTILIDADES(
-        pCodCia => vCodCia,
-        pCodTpl => vCodTpl,
-        pCodPla => vCodPla,
-        pMes => vMes,
-        pFechaDel => vFechaDel,
-        pFechaAl => vFechaAl,
-        pFechaDel1 => vFechaDel1,
-        pFechaAl1 => vFechaAl1,
-        pRowsAffected => vRowsAffected,
-        pCursor => vCursor
-    );
+                vRowsAffected NUMBER := 0;
+                vCursor SYS_REFCURSOR;
+                vMensaje VARCHAR2(32767);
+            BEGIN
+                -- Ejecutar el procedimiento SP_LLENADO_TABLA_UTILIDADES
+                RHEPQ.SP_LLENADO_TABLA_UTILIDADES(
+                    pCodCia => vCodCia,
+                    pCodTpl => vCodTpl,
+                    pCodPla => vCodPla,
+                    pMes => vMes,
+                    pFechaDel => vFechaDel,
+                    pFechaAl => vFechaAl,
+                    pFechaDel1 => vFechaDel1,
+                    pFechaAl1 => vFechaAl1,
+                    pRowsAffected => vRowsAffected,
+                    pCursor => vCursor
+                );
 
-    -- Mostrar las filas afectadas
-    DBMS_OUTPUT.PUT_LINE('Filas afectadas en llenado: ' || vRowsAffected);
+                -- Mostrar las filas afectadas
+                DBMS_OUTPUT.PUT_LINE('Filas afectadas en llenado: ' || vRowsAffected);
 
-    -- Obtener y mostrar el mensaje del cursor
-    FETCH vCursor INTO vMensaje;
-    DBMS_OUTPUT.PUT_LINE(vMensaje);
-    CLOSE vCursor;
+                -- Obtener y mostrar el mensaje del cursor
+                FETCH vCursor INTO vMensaje;
+                DBMS_OUTPUT.PUT_LINE(vMensaje);
+                CLOSE vCursor;
 
-EXCEPTION
-    WHEN OTHERS THEN
-        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
-END;
+            EXCEPTION
+                WHEN OTHERS THEN
+                    DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+            END;
 
 
 
@@ -1638,6 +1649,8 @@ END;
             SELECT ROWID,BON_CODCIA,BON_CODTPL,BON_CODPLA,BON_CODEMP,BON_CODTIG,BON_PPR_N1,BON_PPR_N2,BON_PPR_N3,BON_PPR_N4,BON_PPR_N5,BON_PPR_N6,BON_PPR_N7,BON_PPR_N8,BON_MES,BON_ANIO,BON_VALOR,BON_DIASTRAB,BON_FORMA_PAGO,BON_CODGER,BON_CODPLZ,BON_CODUNI FROM pla_bon_bono14 WHERE BON_ANIO <> 2005 and (fasdfqwer) order by BON_MES,BON_ANIO
 
         --// Generacion de nomina
+
+            SP_GENERA_BONO14
 
             SELECT * FROM RHEPQ.error_log
 
@@ -1752,9 +1765,21 @@ END;
 
         --// Generacion de tablas
 
+            -- SP_GENERAR_TABLA_BONO14_022
+            -- Proceso principal para generar la tabla de Bono 14
+            -- Reversar tabla de utilidades
+            RHEPQ.SP_REVERSION_TABLA_UTILIDADES(pCodCia, pCodTpl, pCodPla, pMes, pFechaDel1, vRowsAffectedReversion, pCursor);
+
+            -- Llenar tabla de utilidades
+            RHEPQ.SP_LLENA_TABLA_UTILIDADES_022(pCodCia, pCodTpl, pCodPla, pMes, pFechaDel, pFechaAl, pFechaDel1, pFechaAl1, vRowsAffectedLlenado, pCursor);
+
         --// Consulta bono 14
 
+            SP_PLA_BONO14_PARTIDA
+
         --// Generacion nomina
+
+            SP_GENERA_BONO14_022
 
     --// Generacion codigos observacion
 
